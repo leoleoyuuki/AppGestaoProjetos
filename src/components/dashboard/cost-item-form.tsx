@@ -53,16 +53,27 @@ interface CostItemFormProps {
   isSubmitting: boolean;
 }
 
+const parseDateString = (dateString: string | Date): Date => {
+  if (dateString instanceof Date) return dateString;
+  // Handle Firestore Timestamps that might be converted to strings
+  if (!dateString.includes('-')) return new Date(dateString); 
+  // Handle 'YYYY-MM-DD' string, parsing in UTC to avoid timezone shifts
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
 export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitting }: CostItemFormProps) {
   const defaultValues = costItem
-    ? { ...costItem, transactionDate: new Date(costItem.transactionDate) }
+    ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate) }
     : {
         name: '',
+        projectId: projects.length > 0 ? projects[0].id : undefined,
         category: 'Outros' as CostCategory,
         plannedAmount: 0,
         actualAmount: 0,
         description: '',
         isRecurring: false,
+        transactionDate: new Date(),
       };
 
   const form = useForm<CostItemFormValues>({

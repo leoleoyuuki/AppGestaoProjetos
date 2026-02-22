@@ -9,23 +9,26 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Logo from '@/components/logo';
 import {
   LayoutDashboard,
-  Wallet,
-  ArrowRightLeft,
-  PieChart,
+  Calendar,
   Settings,
   CircleHelp,
-  TrendingUp,
   LogOut,
+  Wallet,
+  BarChart3,
+  Users,
 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useUser, useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '../ui/button';
+import Image from 'next/image';
+import { Card, CardContent } from '../ui/card';
+import { cn } from '@/lib/utils';
 
 interface AppSidebarProps {
   activeView: string;
@@ -33,18 +36,23 @@ interface AppSidebarProps {
 }
 
 const navItems = [
-  { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
-  { id: 'costs', label: 'Gestão de Custos', icon: Wallet },
-  { id: 'revenue', label: 'Rastreamento de Receitas', icon: TrendingUp },
-  { id: 'cashflow', label: 'Fluxo de Caixa', icon: ArrowRightLeft },
-  { id: 'reports', label: 'Relatórios', icon: PieChart },
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'costs', label: 'Tasks', icon: Wallet },
+  { id: 'revenue', label: 'Calendar', icon: Calendar },
+  { id: 'reports', label: 'Analytics', icon: BarChart3 },
+  { id: 'cashflow', label: 'Team', icon: Users },
 ];
 
+const generalItems = [
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'help', label: 'Help', icon: CircleHelp },
+    { id: 'logout', label: 'Logout', icon: LogOut },
+]
+
 export default function AppSidebar({ activeView, setActiveView }: AppSidebarProps) {
-  const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
-  const { user } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
+  const downloadAppImage = PlaceHolderImages.find((img) => img.id === 'download-app-bg');
 
   const handleSignOut = async () => {
     try {
@@ -56,61 +64,67 @@ export default function AppSidebar({ activeView, setActiveView }: AppSidebarProp
   };
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" variant="sidebar" className="border-r">
+      <SidebarHeader className="h-20">
         <Logo />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
-          {navItems.map((item) => (
-            <SidebarMenuItem key={item.id}>
-              <SidebarMenuButton
-                onClick={() => setActiveView(item.id)}
-                isActive={activeView === item.id}
-                tooltip={item.label}
-              >
-                <item.icon />
-                <span>{item.label}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
+        <div className="flex flex-col gap-4">
+            <div>
+                <span className="text-xs text-muted-foreground px-2">MENU</span>
+                <SidebarMenu>
+                {navItems.map((item) => (
+                    <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                        onClick={() => setActiveView(item.id)}
+                        isActive={activeView === item.id}
+                        tooltip={item.label}
+                        className={cn("justify-start", activeView === item.id && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
+                    >
+                        <item.icon className={cn(activeView === item.id && "text-primary")} />
+                        <span>{item.label}</span>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+                </SidebarMenu>
+            </div>
+
+            <div>
+                <span className="text-xs text-muted-foreground px-2">GENERAL</span>
+                <SidebarMenu>
+                {generalItems.map((item) => (
+                     <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                            onClick={item.id === 'logout' ? handleSignOut : undefined}
+                            tooltip={item.label}
+                            className="justify-start text-muted-foreground hover:text-foreground"
+                        >
+                            <item.icon />
+                            <span>{item.label}</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ))}
+                </SidebarMenu>
+            </div>
+        </div>
+
       </SidebarContent>
-      <SidebarFooter className="mt-auto">
-         <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Ajuda">
-                <CircleHelp />
-                <span>Ajuda</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Configurações">
-                <Settings />
-                <span>Configurações</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            {user && (
-            <SidebarMenuItem>
-               <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
-                 <LogOut />
-                 <span>Sign Out</span>
-               </SidebarMenuButton>
-            </SidebarMenuItem>
+      <SidebarFooter className="mt-auto p-2">
+         <Card className="relative overflow-hidden bg-primary text-primary-foreground">
+            {downloadAppImage && (
+              <Image src={downloadAppImage.imageUrl} alt="Download App background" layout="fill" objectFit="cover" className="opacity-20" />
             )}
-            <SidebarMenuItem>
-               <SidebarMenuButton size="lg" className="justify-start gap-2 h-auto p-2">
-                 {userAvatar && <Avatar className="size-8">
-                    <AvatarImage src={user?.photoURL || userAvatar.imageUrl} alt="User Avatar" data-ai-hint={userAvatar.imageHint} />
-                    <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
-                  </Avatar>}
-                  <div className="flex flex-col items-start truncate">
-                      <span className="font-medium text-sm leading-tight">{user?.displayName || (user?.email ? 'Usuário' : 'Anônimo')}</span>
-                      <span className="text-xs text-sidebar-foreground/70 leading-tight">{user?.email || 'anon@finestra.com'}</span>
-                  </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+            <CardContent className="relative z-10 p-4 text-center">
+                 <div className="mb-4 mt-2 rounded-full bg-white/30 size-10 mx-auto flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
+                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.6 12.54L12.82 16.32C12.44 16.7 11.8 16.7 11.42 16.32L7.4 12.3C7.02 11.92 7.16 11.26 7.68 11.12L11.5 10.02C11.78 9.94 12.06 10.04 12.24 10.26L13.6 11.98L15.54 9.18C15.86 8.72 16.5 8.84 16.66 9.34L17.44 11.8C17.56 12.2 17.28 12.62 16.82 12.66L16.6 12.54Z" fill="currentColor"/>
+                    </svg>
+                 </div>
+                <h3 className="font-semibold">Download our Mobile App</h3>
+                <p className="text-xs text-primary-foreground/80 mb-4">Get easy in another way</p>
+                <Button variant="secondary" className="w-full text-primary">Download</Button>
+            </CardContent>
+         </Card>
       </SidebarFooter>
     </Sidebar>
   );

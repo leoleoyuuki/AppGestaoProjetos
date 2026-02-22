@@ -1,46 +1,81 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, Mail, LogOut } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-interface HeaderProps {
-  currentView: string;
-}
+export default function Header() {
+  const { user } = useUser();
+  const auth = useAuth();
+  const { toast } = useToast();
+  const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
 
-const viewTitles: { [key: string]: string } = {
-  overview: 'Visão Geral do Projeto',
-  costs: 'Gestão de Custos',
-  revenue: 'Rastreamento de Receitas',
-  cashflow: 'Gestão de Fluxo de Caixa',
-  reports: 'Relatórios Financeiros',
-};
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Success', description: 'Signed out successfully' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    }
+  };
 
-export default function Header({ currentView }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
+    <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1">
-        <h1 className="text-lg font-semibold md:text-2xl">{viewTitles[currentView] || 'Painel'}</h1>
-      </div>
-      <div className="flex flex-1 items-center gap-4 md:ml-auto md:flex-none">
-        <form className="ml-auto flex-1 sm:flex-initial">
+        <form>
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Buscar projetos..."
-              className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+              placeholder="Search task..."
+              className="pl-9 sm:w-[300px] md:w-[200px] lg:w-[300px] bg-card border-none rounded-full"
             />
+             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono p-1 border rounded-md">⌘ F</div>
           </div>
         </form>
-        <Button variant="outline" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="sr-only">Notificações</span>
-           <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-accent/80"></span>
-            </span>
+      </div>
+      <div className="flex items-center gap-4 md:ml-auto">
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <Mail className="h-5 w-5" />
+          <span className="sr-only">Messages</span>
         </Button>
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <Bell className="h-5 w-5" />
+          <span className="sr-only">Notificações</span>
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              {userAvatar && (
+                <Avatar>
+                  <AvatarImage src={user?.photoURL || userAvatar.imageUrl} alt="User Avatar" data-ai-hint={userAvatar.imageHint} />
+                  <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+                </Avatar>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user?.displayName || (user?.isAnonymous ? 'Anonymous User' : 'User')}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email || 'anon@donezo.com'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

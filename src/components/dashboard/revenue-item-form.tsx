@@ -50,15 +50,26 @@ interface RevenueItemFormProps {
   isSubmitting: boolean;
 }
 
+const parseDateString = (dateString: string | Date): Date => {
+  if (dateString instanceof Date) return dateString;
+  // Handle Firestore Timestamps that might be converted to strings
+  if (!dateString.includes('-')) return new Date(dateString); 
+  // Handle 'YYYY-MM-DD' string, parsing in UTC to avoid timezone shifts
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
 export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isSubmitting }: RevenueItemFormProps) {
   const defaultValues = revenueItem
-    ? { ...revenueItem, transactionDate: new Date(revenueItem.transactionDate) }
+    ? { ...revenueItem, transactionDate: parseDateString(revenueItem.transactionDate) }
     : {
         name: '',
+        projectId: projects.length > 0 ? projects[0].id : undefined,
         plannedAmount: 0,
         receivedAmount: 0,
         description: '',
         isInstallment: false,
+        transactionDate: new Date(),
       };
 
   const form = useForm<RevenueItemFormValues>({

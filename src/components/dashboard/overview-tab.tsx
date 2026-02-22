@@ -1,86 +1,60 @@
 'use client';
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
-import { TrendingUp, TrendingDown, DollarSign, Briefcase, PlusCircle } from 'lucide-react';
-import ProjectsTable from './projects-table';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, collectionGroup } from 'firebase/firestore';
-import type { Project, RevenueItem, FixedCost } from '@/lib/types';
-import { Skeleton } from '../ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import { useState } from 'react';
 import { ProjectDialog } from './project-dialog';
+import KeyMetricCard from './overview/key-metric-card';
+import ProjectAnalyticsChart from './overview/project-analytics-chart';
+import RemindersCard from './overview/reminders-card';
+import ProjectList from './overview/project-list';
+import TeamCollaborationCard from './overview/team-collaboration-card';
+import ProjectProgressChart from './overview/project-progress-chart';
+import TimeTrackerCard from './overview/time-tracker-card';
 
-const KeyMetricCard = ({ title, value, icon: Icon, trend, isLoading }: { title: string; value: string; icon: React.ElementType; trend?: string, isLoading?: boolean }) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <Icon className="h-4 w-4 text-muted-foreground" />
-    </CardHeader>
-    <CardContent>
-      {isLoading ? <Skeleton className="h-8 w-24 mt-1" /> : <div className="text-2xl font-bold">{value}</div>}
-      {trend && !isLoading && <p className="text-xs text-muted-foreground">{trend}</p>}
-    </CardContent>
-  </Card>
-);
 
 export default function OverviewTab() {
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
-  const { user } = useUser();
-  const firestore = useFirestore();
-
-  const projectsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'projects'));
-  }, [firestore, user]);
-  const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
-
-  const revenueItemsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    // Fetch all revenue items; filtering for pending happens on the client.
-    return query(collectionGroup(firestore, 'revenueItems'));
-  }, [firestore, user]);
-  const { data: revenueItems, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenueItemsQuery);
   
-  const fixedCostsQuery = useMemoFirebase(() => {
-    if(!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'fixedCosts'));
-  }, [firestore, user]);
-  const { data: fixedCosts, isLoading: fixedCostsLoading } = useCollection<FixedCost>(fixedCostsQuery);
-
-  const activeProjects = projects?.filter(p => p.status === 'Em andamento').length || 0;
-
-  const totalPredictedProfit = projects?.reduce((acc, proj) => acc + (proj.plannedTotalRevenue - proj.plannedTotalCost), 0) || 0;
-
-  const totalActualProfit = projects?.reduce((acc, proj) => acc + (proj.actualTotalRevenue - proj.actualTotalCost), 0) || 0;
-  
-  // Security rules filter the collection group query. We then filter for pending items on the client.
-  const userPendingRevenue = revenueItems?.filter(r => r.userId === user?.uid && r.receivedAmount === 0) || [];
-  const pendingRevenue = userPendingRevenue.reduce((acc, r) => acc + r.plannedAmount, 0) || 0;
-  
-  const isLoading = projectsLoading || revenuesLoading || fixedCostsLoading;
-
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KeyMetricCard title="Projetos Ativos" value={activeProjects.toString()} icon={Briefcase} isLoading={isLoading} />
-        <KeyMetricCard title="Lucro Previsto" value={formatCurrency(totalPredictedProfit)} icon={TrendingUp} isLoading={isLoading}/>
-        <KeyMetricCard title="Lucro Real" value={formatCurrency(totalActualProfit)} icon={totalActualProfit > totalPredictedProfit ? TrendingUp : TrendingDown} isLoading={isLoading}/>
-        <KeyMetricCard title="Receita Pendente" value={formatCurrency(pendingRevenue)} icon={DollarSign} isLoading={isLoading}/>
-      </div>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Todos os Projetos</CardTitle>
-          <Button size="sm" onClick={() => setProjectDialogOpen(true)}>
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Plan, prioritize, and accomplish your tasks with ease.
+          </p>
+        </div>
+        <div className='flex gap-2'>
+          <Button onClick={() => setProjectDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Projeto
+            Add Project
           </Button>
-        </CardHeader>
-        <CardContent>
-          <ProjectsTable />
-        </CardContent>
-      </Card>
+           <Button variant="outline">
+            Import Data
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <KeyMetricCard title="Projetos Ativos" statusKey="Em andamento" isPrimary/>
+        <KeyMetricCard title="Projetos Concluídos" statusKey="Concluído"/>
+        <KeyMetricCard title="Lucro Real" isProfit />
+        <KeyMetricCard title="Receita Pendente" isPendingRevenue/>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <ProjectAnalyticsChart />
+          <TeamCollaborationCard />
+        </div>
+        <div className="space-y-6">
+           <RemindersCard />
+           <ProjectList />
+        </div>
+      </div>
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <ProjectProgressChart />
+          <TimeTrackerCard />
+       </div>
       <ProjectDialog isOpen={isProjectDialogOpen} onOpenChange={setProjectDialogOpen} />
-    </div>
+    </>
   );
 }

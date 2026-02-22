@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Finestra Financials',
+  title: 'Donezo',
   description: 'Gestão financeira de projetos simplificada',
 };
 

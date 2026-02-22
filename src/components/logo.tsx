@@ -16,8 +16,8 @@ const Logo = () => {
           className="rounded-md"
         />
       )}
-      <span className="text-lg font-semibold text-sidebar-foreground">
-        Finestra
+      <span className="text-xl font-bold text-sidebar-foreground">
+        Donezo
       </span>
     </div>
   );

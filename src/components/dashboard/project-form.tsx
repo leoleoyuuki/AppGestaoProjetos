@@ -56,12 +56,21 @@ interface ProjectFormProps {
   isSubmitting: boolean;
 }
 
+const parseDateString = (dateString: string | Date): Date => {
+  if (dateString instanceof Date) return dateString;
+  // Handle Firestore Timestamps that might be converted to strings
+  if (!dateString.includes('-')) return new Date(dateString); 
+  // Handle 'YYYY-MM-DD' string, parsing in UTC to avoid timezone shifts
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
 export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: ProjectFormProps) {
   const defaultValues = project
     ? {
         ...project,
-        startDate: new Date(project.startDate),
-        endDate: new Date(project.endDate),
+        startDate: parseDateString(project.startDate),
+        endDate: parseDateString(project.endDate),
       }
     : {
         name: '',
@@ -70,6 +79,8 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
         status: 'Em andamento' as ProjectStatus,
         plannedTotalCost: 0,
         plannedTotalRevenue: 0,
+        startDate: new Date(),
+        endDate: new Date(),
       };
 
   const form = useForm<ProjectFormValues>({

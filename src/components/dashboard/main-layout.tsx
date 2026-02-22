@@ -36,8 +36,8 @@ export default function MainLayout() {
         <AppSidebar activeView={activeView} setActiveView={setActiveView} />
         <SidebarInset>
           <div className="flex flex-col flex-1">
-            <Header currentView={activeView} />
-            <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background/80">
+            <Header />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background">
               {renderContent()}
             </main>
           </div>
