@@ -2,15 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra principal para acesso em nível de documento. Um usuário pode obter qualquer documento
-    // se o seu UID estiver no caminho. Isso protege as leituras de documentos individuais.
+    // Regra principal para acesso de leitura. Um usuário pode ler (get, list) qualquer documento
+    // se o seu UID estiver no caminho. Isso protege as leituras de documentos individuais
+    // e permite listar coleções como 'projects' e 'fixedCosts'.
     match /users/{userId}/{document=**} {
-      allow get: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
     }
 
     // Regra específica para consultas de grupo de coleções. Isso permite que a operação 'list'
-    // seja iniciada. A regra 'get' acima garantirá a segurança dos documentos individuais
-    // retornados pela consulta.
+    // seja iniciada. A regra 'read' acima (via 'get' implícito) garantirá a segurança 
+    // dos documentos individuais retornados pela consulta.
     match /{path=**}/revenueItems/{revenueItem} {
       allow list: if request.auth != null;
     }
