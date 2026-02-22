@@ -96,7 +96,8 @@ service cloud.firestore {
      *   strict user ownership boundaries via the denormalized `userId` field.
      */
     match /{path=**}/costItems/{costItemId} {
-      allow read: if isOwner(resource.data.userId);
+      allow get: if isOwner(resource.data.userId);
+      allow list: if isOwner(resource.data.userId);
     }
     
     /**
@@ -109,7 +110,8 @@ service cloud.firestore {
      *   strict user ownership boundaries via the denormalized `userId` field.
      */
     match /{path=**}/revenueItems/{revenueItemId} {
-      allow read: if isOwner(resource.data.userId);
+      allow get: if isOwner(resource.data.userId);
+      allow list: if isOwner(resource.data.userId);
     }
 
     // -------------------------------------------------------------------------
