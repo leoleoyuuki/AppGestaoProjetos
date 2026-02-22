@@ -2,26 +2,30 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import MainLayout from '@/components/dashboard/main-layout';
+import Login from '@/components/login';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function Home() {
+export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
+    if (!isUserLoading && user) {
+      router.push('/');
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="flex h-screen w-screen items-center justify-center">
         <Skeleton className="h-full w-full" />
       </div>
     );
   }
 
-  return <MainLayout />;
+  if (user) {
+    return null;
+  }
+
+  return <Login />;
 }

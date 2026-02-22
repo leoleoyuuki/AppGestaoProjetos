@@ -1,19 +1,38 @@
+'use client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { revenues, projects } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
-import type { PaymentMethod } from '@/lib/types';
-
-const paymentMethodVariant: { [key in PaymentMethod]: 'default' | 'secondary' | 'outline' } = {
-  'Cartão de Crédito': 'default',
-  'Transferência Bancária': 'secondary',
-  'Dinheiro': 'outline',
-};
+import { PlusCircle } from 'lucide-react';
+import type { RevenueItem, Project } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collectionGroup, query, where, collection } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RevenueTab() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const revenuesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collectionGroup(firestore, 'revenueItems'), where('userId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: revenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenuesQuery);
+  
+  const projectsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/projects`));
+  }, [firestore, user]);
+  const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
+
+  const getProjectName = (projectId: string) => {
+    return projects?.find(p => p.id === projectId)?.name;
+  };
+  
+  const isLoading = revenuesLoading || projectsLoading;
+
+
   return (
     <div className="space-y-6">
       <Card>
@@ -31,27 +50,32 @@ export default function RevenueTab() {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Projeto</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Método</TableHead>
                 <TableHead className="text-right">Previsto</TableHead>
                 <TableHead className="text-right">Recebido</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {revenues.map(revenue => {
-                const project = projects.find(p => p.id === revenue.projectId);
-                const status = revenue.actualAmount > 0 ? 'Recebido' : 'Pendente';
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                     <div className="space-y-2">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && revenues?.map(revenue => {
+                const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
                 return (
                   <TableRow key={revenue.id}>
-                    <TableCell className="font-medium">{revenue.description}</TableCell>
-                    <TableCell>{project?.name}</TableCell>
+                    <TableCell className="font-medium">{revenue.name}</TableCell>
+                    <TableCell>{getProjectName(revenue.projectId)}</TableCell>
                     <TableCell>
                       <Badge variant={status === 'Recebido' ? 'secondary' : 'default'}>{status}</Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={paymentMethodVariant[revenue.paymentMethod]}>{revenue.paymentMethod}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(revenue.predictedAmount)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(revenue.actualAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(revenue.receivedAmount)}</TableCell>
                   </TableRow>
                 );
               })}

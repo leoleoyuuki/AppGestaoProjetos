@@ -1,36 +1,19 @@
-
 "use client"
 
-import { TrendingUp } from "lucide-react"
 import { Pie, PieChart, Cell } from "recharts"
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   ChartLegend,
-  ChartLegendContent
+  ChartLegendContent,
 } from "@/components/ui/chart"
-import { costs } from "@/lib/data"
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collectionGroup, query, where } from 'firebase/firestore';
+import type { CostItem } from '@/lib/types';
+import { useMemo } from 'react';
+import { Skeleton } from "../ui/skeleton";
 
-const costDataByCategory = costs.reduce((acc, cost) => {
-    const totalCost = cost.actualAmount > 0 ? cost.actualAmount : cost.predictedAmount
-    if (!acc[cost.category]) {
-        acc[cost.category] = { name: cost.category, value: 0 };
-    }
-    acc[cost.category].value += totalCost;
-    return acc;
-}, {} as { [key: string]: { name: string, value: number } });
-
-const chartData = Object.values(costDataByCategory);
 
 const chartConfig = {
   value: {
@@ -59,7 +42,33 @@ const chartConfig = {
 }
 
 export default function CostPieChart() {
-  const totalValue = chartData.reduce((acc, curr) => acc + curr.value, 0)
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const costsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collectionGroup(firestore, 'costItems'), where('userId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
+  
+  const chartData = useMemo(() => {
+    if(!costs) return [];
+    const costDataByCategory = costs.reduce((acc, cost) => {
+        const totalCost = cost.actualAmount > 0 ? cost.actualAmount : cost.plannedAmount
+        if (!acc[cost.category]) {
+            acc[cost.category] = { name: cost.category, value: 0 };
+        }
+        acc[cost.category].value += totalCost;
+        return acc;
+    }, {} as { [key: string]: { name: string, value: number } });
+
+    return Object.values(costDataByCategory);
+  }, [costs]);
+
+
+  if (costsLoading) {
+    return <Skeleton className="h-[350px] w-[350px] rounded-full" />
+  }
 
   return (
     <ChartContainer

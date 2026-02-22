@@ -1,15 +1,71 @@
+'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { transactions } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
 import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collectionGroup, query, where, collection } from 'firebase/firestore';
+import type { CostItem, RevenueItem, Project, Transaction } from '@/lib/types';
+import { useMemo } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CashflowTab() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const costsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collectionGroup(firestore, 'costItems'), where('userId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
+
+  const revenuesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collectionGroup(firestore, 'revenueItems'), where('userId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: revenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenuesQuery);
+
+  const projectsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/projects`));
+  }, [firestore, user]);
+  const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
+
+  const transactions: Transaction[] = useMemo(() => {
+    if (!costs || !revenues || !projects) return [];
+
+    const revenueTransactions = revenues.map(r => ({
+      id: `trans-rev-${r.id}`,
+      type: 'Receita' as const,
+      description: r.name,
+      amount: r.receivedAmount > 0 ? r.receivedAmount : r.plannedAmount,
+      date: r.transactionDate,
+      category: 'Receita' as const,
+      project: projects.find(p => p.id === r.projectId)?.name || 'N/A',
+      status: r.receivedAmount > 0 ? 'Recebido' as const : 'Pendente' as const,
+    }));
+
+    const costTransactions = costs.map(c => ({
+      id: `trans-cost-${c.id}`,
+      type: 'Custo' as const,
+      description: c.name,
+      amount: c.actualAmount > 0 ? c.actualAmount : c.plannedAmount,
+      date: c.transactionDate,
+      category: c.category,
+      project: projects.find(p => p.id === c.projectId)?.name || 'N/A',
+      status: c.actualAmount > 0 ? 'Pago' as const : 'Pendente' as const,
+    }));
+
+    return [...revenueTransactions, ...costTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [costs, revenues, projects]);
+  
+  const isLoading = costsLoading || revenuesLoading || projectsLoading;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -47,6 +103,7 @@ export default function CashflowTab() {
               </SelectTrigger>
               <SelectContent>
                  <SelectItem value="all">Todos os Projetos</SelectItem>
+                 {projects?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
              <Button variant="outline"><Filter className="mr-2 h-4 w-4"/> Aplicar Filtros</Button>
@@ -62,7 +119,17 @@ export default function CashflowTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map(transaction => (
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                     <div className="space-y-2">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && transactions.map(transaction => (
                 <TableRow key={transaction.id}>
                   <TableCell>{new Date(transaction.date).toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell className="font-medium">{transaction.description}</TableCell>

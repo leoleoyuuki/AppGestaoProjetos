@@ -1,12 +1,15 @@
+'use client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { projects, costs, revenues } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
-import type { ProjectStatus } from '@/lib/types';
+import type { Project, ProjectStatus } from '@/lib/types';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
 
 const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' } = {
   'Em andamento': 'default',
@@ -15,15 +18,21 @@ const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destru
 };
 
 export default function ProjectsTable() {
-  const projectData = projects.map(proj => {
-    const projCosts = costs.filter(c => c.projectId === proj.id);
-    const projRevenues = revenues.filter(r => r.projectId === proj.id);
+  const { user } = useUser();
+  const firestore = useFirestore();
 
-    const totalPredictedRevenue = projRevenues.reduce((sum, r) => sum + r.predictedAmount, 0);
-    const totalActualRevenue = projRevenues.reduce((sum, r) => sum + r.actualAmount, 0);
+  const projectsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'users', user.uid, 'projects'));
+  }, [firestore, user]);
+  const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
-    const totalPredictedCost = projCosts.reduce((sum, c) => sum + c.predictedAmount, 0);
-    const totalActualCost = projCosts.reduce((sum, c) => sum + c.actualAmount, 0);
+  const projectData = projects?.map(proj => {
+    const totalPredictedRevenue = proj.plannedTotalRevenue;
+    const totalActualRevenue = proj.actualTotalRevenue;
+
+    const totalPredictedCost = proj.plannedTotalCost;
+    const totalActualCost = proj.actualTotalCost;
     
     const predictedProfit = totalPredictedRevenue - totalPredictedCost;
     const actualProfit = totalActualRevenue - totalActualCost;
@@ -38,6 +47,16 @@ export default function ProjectsTable() {
     };
   });
 
+  if (projectsLoading) {
+    return (
+        <div className="space-y-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+        </div>
+    )
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -51,7 +70,7 @@ export default function ProjectsTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {projectData.map(proj => (
+        {projectData?.map(proj => (
           <TableRow key={proj.id}>
             <TableCell>
               <div className="font-medium">{proj.name}</div>

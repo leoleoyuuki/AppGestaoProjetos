@@ -83,6 +83,36 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // Collection Group Query Rules
+    // -------------------------------------------------------------------------
+    
+    /**
+     * @description Allows authenticated users to list their own cost items
+     *   across all projects using a collection group query.
+     * @path /{path=**}/costItems/{costItemId}
+     * @allow (list) An authenticated user querying the 'costItems' collection
+     *   group where the document's `userId` matches their own UID.
+     * @principle Enables efficient, cross-project data fetching while maintaining
+     *   strict user ownership boundaries via the denormalized `userId` field.
+     */
+    match /{path=**}/costItems/{costItemId} {
+      allow list: if isOwner(resource.data.userId);
+    }
+    
+    /**
+     * @description Allows authenticated users to list their own revenue items
+     *   across all projects using a collection group query.
+     * @path /{path=**}/revenueItems/{revenueItemId}
+     * @allow (list) An authenticated user querying the 'revenueItems' collection
+     *   group where the document's `userId` matches their own UID.
+     * @principle Enables efficient, cross-project data fetching while maintaining
+     *   strict user ownership boundaries via the denormalized `userId` field.
+     */
+    match /{path=**}/revenueItems/{revenueItemId} {
+      allow list: if isOwner(resource.data.userId);
+    }
+
+    // -------------------------------------------------------------------------
     // Collection Rules
     // -------------------------------------------------------------------------
 

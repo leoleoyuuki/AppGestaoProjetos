@@ -134,6 +134,10 @@
           "type": "string",
           "description": "Reference to the Project this cost item belongs to. (Relationship: Project 1:N CostItem)"
         },
+        "userId": {
+          "type": "string",
+          "description": "Denormalized reference to the UserProfile who owns the project."
+        },
         "name": {
           "type": "string",
           "description": "A descriptive name for the cost item (e.g., 'Salários - Janeiro', 'Material A')."
@@ -185,6 +189,7 @@
       "required": [
         "id",
         "projectId",
+        "userId",
         "name",
         "category",
         "plannedAmount",
@@ -209,6 +214,10 @@
         "projectId": {
           "type": "string",
           "description": "Reference to the Project this revenue item belongs to. (Relationship: Project 1:N RevenueItem)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Denormalized reference to the UserProfile who owns the project."
         },
         "paymentMethodId": {
           "type": "string",
@@ -261,6 +270,7 @@
       "required": [
         "id",
         "projectId",
+        "userId",
         "paymentMethodId",
         "name",
         "plannedAmount",

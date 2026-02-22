@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from "recharts"
@@ -9,20 +8,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-
-import { projects, revenues as allRevenues } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
-
-
-const chartData = projects.map(project => {
-  const projectRevenues = allRevenues.filter(r => r.projectId === project.id);
-  return {
-    project: project.name.split(' ')[0], // Shorten name for chart
-    predicted: projectRevenues.reduce((acc, r) => acc + r.predictedAmount, 0),
-    actual: projectRevenues.reduce((acc, r) => acc + r.actualAmount, 0)
-  }
-});
-
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Project } from '@/lib/types';
+import { useMemo } from 'react';
+import { Skeleton } from "../ui/skeleton";
 
 const chartConfig = {
   predicted: {
@@ -36,6 +27,29 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export default function RevenueBarChart() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const projectsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/projects`));
+  }, [firestore, user]);
+  const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
+
+  const chartData = useMemo(() => {
+    if (!projects) return [];
+    return projects.map(project => ({
+      project: project.name.split(' ')[0], // Shorten name for chart
+      predicted: project.plannedTotalRevenue,
+      actual: project.actualTotalRevenue,
+    }));
+  }, [projects]);
+
+
+  if (projectsLoading) {
+    return <Skeleton className="h-[350px] w-full" />
+  }
+
   return (
     <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-[350px]">
       <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 20 }}>
@@ -45,7 +59,6 @@ export default function RevenueBarChart() {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          
         />
         <YAxis tickFormatter={(value) => formatCurrency(Number(value))} />
         <ChartTooltip content={<ChartTooltipContent />} />

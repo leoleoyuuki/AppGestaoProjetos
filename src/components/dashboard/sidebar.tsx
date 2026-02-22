@@ -19,9 +19,13 @@ import {
   Settings,
   CircleHelp,
   TrendingUp,
+  LogOut,
 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppSidebarProps {
   activeView: string;
@@ -38,6 +42,18 @@ const navItems = [
 
 export default function AppSidebar({ activeView, setActiveView }: AppSidebarProps) {
   const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
+  const { user } = useUser();
+  const auth = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Success', description: 'Signed out successfully' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -74,15 +90,23 @@ export default function AppSidebar({ activeView, setActiveView }: AppSidebarProp
                 <span>Configurações</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {user && (
+            <SidebarMenuItem>
+               <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
+                 <LogOut />
+                 <span>Sign Out</span>
+               </SidebarMenuButton>
+            </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
                <SidebarMenuButton size="lg" className="justify-start gap-2 h-auto p-2">
                  {userAvatar && <Avatar className="size-8">
-                    <AvatarImage src={userAvatar.imageUrl} alt="User Avatar" data-ai-hint={userAvatar.imageHint} />
-                    <AvatarFallback>U</AvatarFallback>
+                    <AvatarImage src={user?.photoURL || userAvatar.imageUrl} alt="User Avatar" data-ai-hint={userAvatar.imageHint} />
+                    <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>}
                   <div className="flex flex-col items-start truncate">
-                      <span className="font-medium text-sm leading-tight">Usuário</span>
-                      <span className="text-xs text-sidebar-foreground/70 leading-tight">usuario@finestra.com</span>
+                      <span className="font-medium text-sm leading-tight">{user?.displayName || (user?.email ? 'Usuário' : 'Anônimo')}</span>
+                      <span className="text-xs text-sidebar-foreground/70 leading-tight">{user?.email || 'anon@finestra.com'}</span>
                   </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
