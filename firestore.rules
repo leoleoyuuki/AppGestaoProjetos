@@ -97,7 +97,7 @@ service cloud.firestore {
      */
     match /{path=**}/costItems/{costItemId} {
       allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
+      allow list: if isSignedIn();
     }
     
     /**
@@ -111,7 +111,7 @@ service cloud.firestore {
      */
     match /{path=**}/revenueItems/{revenueItemId} {
       allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
+      allow list: if isSignedIn();
     }
 
     // -------------------------------------------------------------------------
@@ -234,3 +234,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
