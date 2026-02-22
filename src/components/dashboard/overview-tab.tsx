@@ -1,13 +1,15 @@
 'use client';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import { TrendingUp, TrendingDown, DollarSign, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Briefcase, PlusCircle } from 'lucide-react';
 import ProjectsTable from './projects-table';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, collectionGroup } from 'firebase/firestore';
 import type { Project, RevenueItem, FixedCost } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-
+import { Button } from '@/components/ui/button';
+import { ProjectDialog } from './project-dialog';
 
 const KeyMetricCard = ({ title, value, icon: Icon, trend, isLoading }: { title: string; value: string; icon: React.ElementType; trend?: string, isLoading?: boolean }) => (
   <Card>
@@ -23,6 +25,7 @@ const KeyMetricCard = ({ title, value, icon: Icon, trend, isLoading }: { title: 
 );
 
 export default function OverviewTab() {
+  const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -66,13 +69,18 @@ export default function OverviewTab() {
         <KeyMetricCard title="Receita Pendente" value={formatCurrency(pendingRevenue)} icon={DollarSign} isLoading={isLoading}/>
       </div>
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Todos os Projetos</CardTitle>
+          <Button size="sm" onClick={() => setProjectDialogOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Adicionar Projeto
+          </Button>
         </CardHeader>
         <CardContent>
           <ProjectsTable />
         </CardContent>
       </Card>
+      <ProjectDialog isOpen={isProjectDialogOpen} onOpenChange={setProjectDialogOpen} />
     </div>
   );
 }

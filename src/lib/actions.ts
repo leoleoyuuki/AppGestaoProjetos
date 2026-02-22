@@ -1,6 +1,237 @@
-"use server";
+'use client';
 
-// This file is intended for server actions.
-// The deviation analysis logic has been moved to the client-side
-// in CostsTab.tsx to have access to user authentication state
-// and perform Firestore queries accordingly.
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  type Firestore,
+} from 'firebase/firestore';
+import type { Project, CostItem, RevenueItem } from './types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
+// --- Project Actions ---
+
+export type ProjectFormData = Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'actualTotalCost' | 'actualTotalRevenue'>;
+
+export function addProject(
+  firestore: Firestore,
+  userId: string,
+  projectData: ProjectFormData
+) {
+  const projectsColRef = collection(firestore, `users/${userId}/projects`);
+  const data = {
+    ...projectData,
+    userId,
+    actualTotalCost: 0,
+    actualTotalRevenue: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  addDoc(projectsColRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: projectsColRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function updateProject(
+  firestore: Firestore,
+  userId: string,
+  projectId: string,
+  projectData: Partial<ProjectFormData>
+) {
+  const projectDocRef = doc(firestore, `users/${userId}/projects`, projectId);
+  const data = {
+    ...projectData,
+    updatedAt: serverTimestamp(),
+  };
+
+  updateDoc(projectDocRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: projectDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function deleteProject(
+  firestore: Firestore,
+  userId: string,
+  projectId: string
+) {
+  const projectDocRef = doc(firestore, `users/${userId}/projects`, projectId);
+  deleteDoc(projectDocRef).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: projectDocRef.path,
+        operation: 'delete',
+      })
+    );
+    // Note: This does not delete subcollections like costItems and revenueItems.
+    // A cloud function would be needed for cascading deletes.
+  });
+}
+
+// --- CostItem Actions ---
+
+export type CostItemFormData = Omit<CostItem, 'id' | 'createdAt' | 'updatedAt'>;
+
+export function addCostItem(
+  firestore: Firestore,
+  userId: string,
+  projectId: string,
+  costItemData: CostItemFormData
+) {
+  const costItemsColRef = collection(firestore, `users/${userId}/projects/${projectId}/costItems`);
+  const data = {
+    ...costItemData,
+    userId,
+    projectId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  addDoc(costItemsColRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: costItemsColRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function updateCostItem(
+  firestore: Firestore,
+  userId: string,
+  projectId: string,
+  costItemId: string,
+  costItemData: Partial<CostItemFormData>
+) {
+  const costItemDocRef = doc(firestore, `users/${userId}/projects/${projectId}/costItems`, costItemId);
+  const data = {
+    ...costItemData,
+    updatedAt: serverTimestamp(),
+  };
+  
+  updateDoc(costItemDocRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: costItemDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function deleteCostItem(
+  firestore: Firestore,
+  userId: string,
+  projectId: string,
+  costItemId: string
+) {
+  const costItemDocRef = doc(firestore, `users/${userId}/projects/${projectId}/costItems`, costItemId);
+  deleteDoc(costItemDocRef).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: costItemDocRef.path,
+        operation: 'delete',
+      })
+    );
+  });
+}
+
+
+// --- RevenueItem Actions ---
+
+export type RevenueItemFormData = Omit<RevenueItem, 'id' | 'createdAt' | 'updatedAt' | 'paymentMethodId'>;
+
+export function addRevenueItem(
+  firestore: Firestore,
+  userId: string,
+  projectId: string,
+  revenueItemData: RevenueItemFormData
+) {
+  const revenueItemsColRef = collection(firestore, `users/${userId}/projects/${projectId}/revenueItems`);
+  const data = {
+    ...revenueItemData,
+    userId,
+    projectId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  addDoc(revenueItemsColRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: revenueItemsColRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function updateRevenueItem(
+  firestore: Firestore,
+  userId: string,
+  projectId: string,
+  revenueItemId: string,
+  revenueItemData: Partial<RevenueItemFormData>
+) {
+  const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${projectId}/revenueItems`, revenueItemId);
+  const data = {
+    ...revenueItemData,
+    updatedAt: serverTimestamp(),
+  };
+  
+  updateDoc(revenueItemDocRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: revenueItemDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function deleteRevenueItem(
+  firestore: Firestore,
+  userId: string,
+  projectId: string,
+  revenueItemId: string
+) {
+  const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${projectId}/revenueItems`, revenueItemId);
+  deleteDoc(revenueItemDocRef).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: revenueItemDocRef.path,
+        operation: 'delete',
+      })
+    );
+  });
+}

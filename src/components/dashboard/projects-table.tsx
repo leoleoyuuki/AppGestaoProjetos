@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +11,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
+import { ProjectDialog } from './project-dialog';
+import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
+import { deleteProject } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
 const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' } = {
   'Em andamento': 'default',
@@ -20,6 +25,10 @@ const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destru
 export default function ProjectsTable() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
+  const [deletingProject, setDeletingProject] = useState<Project | undefined>(undefined);
 
   const projectsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -47,6 +56,13 @@ export default function ProjectsTable() {
     };
   });
 
+  const handleDeleteConfirm = () => {
+    if (!deletingProject || !user) return;
+    deleteProject(firestore, user.uid, deletingProject.id);
+    toast({ title: 'Sucesso', description: 'Projeto excluído.' });
+    setDeletingProject(undefined);
+  };
+
   if (projectsLoading) {
     return (
         <div className="space-y-2">
@@ -58,52 +74,69 @@ export default function ProjectsTable() {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Projeto</TableHead>
-          <TableHead className="hidden md:table-cell">Status</TableHead>
-          <TableHead className="hidden lg:table-cell">Progresso</TableHead>
-          <TableHead className="text-right">Lucro Previsto</TableHead>
-          <TableHead className="text-right hidden md:table-cell">Lucro Real</TableHead>
-          <TableHead><span className="sr-only">Ações</span></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {projectData?.map(proj => (
-          <TableRow key={proj.id}>
-            <TableCell>
-              <div className="font-medium">{proj.name}</div>
-              <div className="text-sm text-muted-foreground hidden sm:inline">{proj.client}</div>
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-              <Badge variant={statusVariant[proj.status]}>{proj.status}</Badge>
-            </TableCell>
-            <TableCell className="hidden lg:table-cell">
-              <div className="flex items-center gap-2">
-                <Progress value={proj.progress} className="h-2" />
-                <span className="text-xs text-muted-foreground">{Math.round(proj.progress)}%</span>
-              </div>
-            </TableCell>
-            <TableCell className="text-right">{formatCurrency(proj.predictedProfit)}</TableCell>
-            <TableCell className="text-right hidden md:table-cell">{formatCurrency(proj.actualProfit)}</TableCell>
-            <TableCell>
-               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
-                  <DropdownMenuItem>Editar Projeto</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive focus:text-destructive">Excluir</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Projeto</TableHead>
+            <TableHead className="hidden md:table-cell">Status</TableHead>
+            <TableHead className="hidden lg:table-cell">Progresso</TableHead>
+            <TableHead className="text-right">Lucro Previsto</TableHead>
+            <TableHead className="text-right hidden md:table-cell">Lucro Real</TableHead>
+            <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {projectData?.map(proj => (
+            <TableRow key={proj.id}>
+              <TableCell>
+                <div className="font-medium">{proj.name}</div>
+                <div className="text-sm text-muted-foreground hidden sm:inline">{proj.client}</div>
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                <Badge variant={statusVariant[proj.status]}>{proj.status}</Badge>
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                <div className="flex items-center gap-2">
+                  <Progress value={proj.progress} className="h-2" />
+                  <span className="text-xs text-muted-foreground">{Math.round(proj.progress)}%</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-right">{formatCurrency(proj.predictedProfit)}</TableCell>
+              <TableCell className="text-right hidden md:table-cell">{formatCurrency(proj.actualProfit)}</TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setEditingProject(proj)}>Editar</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingProject(proj)}>Excluir</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {editingProject && (
+        <ProjectDialog
+          isOpen={!!editingProject}
+          onOpenChange={(isOpen) => !isOpen && setEditingProject(undefined)}
+          project={editingProject}
+        />
+      )}
+      {deletingProject && (
+        <DeleteAlertDialog
+          isOpen={!!deletingProject}
+          onOpenChange={(isOpen) => !isOpen && setDeletingProject(undefined)}
+          onConfirm={handleDeleteConfirm}
+          title="Tem certeza que deseja excluir este projeto?"
+          description="Esta ação não pode ser desfeita. Todos os dados associados a este projeto serão perdidos."
+        />
+      )}
+    </>
   );
 }

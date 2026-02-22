@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { PlusCircle, AlertCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DeviationAssistantDialog from './deviation-assistant-dialog';
 import { analyzeDeviation, type AnalyzeDeviationOutput, type AnalyzeDeviationInput } from "@/ai/flows/deviation-analysis-assistant";
@@ -14,11 +14,19 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collectionGroup, query, collection } from 'firebase/firestore';
 import type { CostItem, Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { CostItemDialog } from './cost-item-dialog';
+import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
+import { deleteCostItem } from '@/lib/actions';
 
 export default function CostsTab() {
   const { toast } = useToast();
   const [analysisResult, setAnalysisResult] = useState<AnalyzeDeviationOutput | null>(null);
-  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [isDeviationDialogOpen, setDeviationDialogOpen] = useState(false);
+  const [isCostItemDialogOpen, setCostItemDialogOpen] = useState(false);
+  const [editingCostItem, setEditingCostItem] = useState<CostItem | undefined>(undefined);
+  const [deletingCostItem, setDeletingCostItem] = useState<CostItem | undefined>(undefined);
+
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -77,7 +85,7 @@ export default function CostsTab() {
       if (result) {
         if(result.isSignificantDeviation) {
           setAnalysisResult(result);
-          setDialogOpen(true);
+          setDeviationDialogOpen(true);
         } else {
           toast({
             title: "Análise Concluída",
@@ -116,16 +124,33 @@ export default function CostsTab() {
   const getProjectName = (projectId: string) => {
     return projects?.find(p => p.id === projectId)?.name;
   };
+
+  const handleDeleteConfirm = () => {
+    if (!deletingCostItem || !user) return;
+    deleteCostItem(firestore, user.uid, deletingCostItem.projectId, deletingCostItem.id);
+    toast({ title: 'Sucesso', description: 'Custo excluído.' });
+    setDeletingCostItem(undefined);
+  };
   
   const userCosts = costs?.filter(cost => cost.userId === user?.uid);
   const isLoading = costsLoading || projectsLoading;
+
+  const openDialogForEdit = (cost: CostItem) => {
+    setEditingCostItem(cost);
+    setCostItemDialogOpen(true);
+  }
+
+  const openDialogForCreate = () => {
+    setEditingCostItem(undefined);
+    setCostItemDialogOpen(true);
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Todos os Custos</CardTitle>
-          <Button size="sm">
+          <Button size="sm" onClick={openDialogForCreate}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Custo
           </Button>
@@ -140,7 +165,7 @@ export default function CostsTab() {
                 <TableHead className="text-right">Previsto</TableHead>
                 <TableHead className="text-right">Real</TableHead>
                 <TableHead className="text-center">Desvio</TableHead>
-                <TableHead><span className="sr-only">Ações</span></TableHead>
+                <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -173,10 +198,22 @@ export default function CostsTab() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                       <Button variant="ghost" size="icon" onClick={() => handleAnalysis(cost.projectId)}>
-                          <AlertCircle className="h-4 w-4 text-primary" />
-                          <span className="sr-only">Analisar Desvio</span>
-                       </Button>
+                       <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAnalysis(cost.projectId)}>
+                             Analisar Desvio
+                           </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );
@@ -186,10 +223,27 @@ export default function CostsTab() {
         </CardContent>
       </Card>
       <DeviationAssistantDialog
-        isOpen={isDialogOpen}
-        setOpen={setDialogOpen}
+        isOpen={isDeviationDialogOpen}
+        setOpen={setDeviationDialogOpen}
         analysisResult={analysisResult}
       />
+      {(isCostItemDialogOpen || editingCostItem) && projects && (
+         <CostItemDialog 
+            isOpen={isCostItemDialogOpen}
+            onOpenChange={setCostItemDialogOpen}
+            projects={projects}
+            costItem={editingCostItem}
+         />
+      )}
+      {deletingCostItem && (
+        <DeleteAlertDialog
+          isOpen={!!deletingCostItem}
+          onOpenChange={(isOpen) => !isOpen && setDeletingCostItem(undefined)}
+          onConfirm={handleDeleteConfirm}
+          title="Tem certeza que deseja excluir este custo?"
+          description="Esta ação não pode ser desfeita e irá remover permanentemente o item de custo."
+        />
+      )}
     </div>
   );
 }
