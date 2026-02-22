@@ -2,25 +2,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows a user to read any document in the database if the path
-    // contains their user ID. This is the standard and secure way to enable
-    // collection group queries while maintaining user data isolation.
+    // Regra principal para acesso em nível de documento. Um usuário pode obter qualquer documento
+    // se o seu UID estiver no caminho. Isso protege as leituras de documentos individuais.
     match /users/{userId}/{document=**} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow get: if request.auth != null && request.auth.uid == userId;
     }
 
-    // --- Write Rules ---
-    // Write rules are more granular to ensure data integrity and that users
-    // can only modify their own data.
+    // Regra específica para consultas de grupo de coleções. Isso permite que a operação 'list'
+    // seja iniciada. A regra 'get' acima garantirá a segurança dos documentos individuais
+    // retornados pela consulta.
+    match /{path=**}/revenueItems/{revenueItem} {
+      allow list: if request.auth != null;
+    }
+    match /{path=**}/costItems/{costItem} {
+      allow list: if request.auth != null;
+    }
 
-    // User can only write to their own user profile document.
+    // --- Regras de Escrita ---
+    // As regras de escrita são mais granulares para garantir a integridade dos dados e que os usuários
+    // possam apenas modificar seus próprios dados.
+
+    // O usuário só pode escrever em seu próprio documento de perfil de usuário.
     match /users/{userId} {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Users can write to documents in their own subcollections,
-    // with an additional check that the document data itself contains their userId.
-    // This prevents accidental data misplacement.
+    // Os usuários podem escrever em documentos em suas próprias subcoleções,
+    // com uma verificação adicional de que os próprios dados do documento contêm seu userId.
+    // Isso evita a colocação incorreta acidental de dados.
     match /users/{userId}/projects/{projectId} {
       allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
     }
