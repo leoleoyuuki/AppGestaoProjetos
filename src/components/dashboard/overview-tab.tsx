@@ -4,7 +4,7 @@ import { formatCurrency } from '@/lib/utils';
 import { TrendingUp, TrendingDown, DollarSign, Briefcase } from 'lucide-react';
 import ProjectsTable from './projects-table';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, collectionGroup } from 'firebase/firestore';
 import type { Project, RevenueItem, FixedCost } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 
@@ -34,10 +34,10 @@ export default function OverviewTab() {
 
   const revenueItemsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // Security rules will filter by user. This query now requires a collection group index on receivedAmount.
-    return query(collectionGroup(firestore, 'revenueItems'), where('receivedAmount', '==', 0));
+    // Fetch all revenue items; filtering for pending happens on the client.
+    return query(collectionGroup(firestore, 'revenueItems'));
   }, [firestore, user]);
-  const { data: pendingRevenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenueItemsQuery);
+  const { data: revenueItems, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenueItemsQuery);
   
   const fixedCostsQuery = useMemoFirebase(() => {
     if(!user || !firestore) return null;
@@ -51,8 +51,8 @@ export default function OverviewTab() {
 
   const totalActualProfit = projects?.reduce((acc, proj) => acc + (proj.actualTotalRevenue - proj.actualTotalCost), 0) || 0;
   
-  // The query fetches for all users, but security rules filter it. We must filter again on the client.
-  const userPendingRevenue = pendingRevenues?.filter(r => r.userId === user?.uid) || [];
+  // Security rules filter the collection group query. We then filter for pending items on the client.
+  const userPendingRevenue = revenueItems?.filter(r => r.userId === user?.uid && r.receivedAmount === 0) || [];
   const pendingRevenue = userPendingRevenue.reduce((acc, r) => acc + r.plannedAmount, 0) || 0;
   
   const isLoading = projectsLoading || revenuesLoading || fixedCostsLoading;
