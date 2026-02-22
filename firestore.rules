@@ -1,144 +1,62 @@
-/**
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for the Finestra Financials
- * application. All data is considered private and is accessible only by the user
- * who created it. There is no public or shared data.
- *
- * The security model is based on path-based ownership. Every user-specific
- * document is nested under `/users/{userId}`, where `{userId}` matches the
- * Firebase Authentication UID. This structure provides a robust and efficient
- * security boundary for all operations, including collection group queries.
- *
- * Key Security Decisions:
- * - User Isolation via Path: A single, powerful read rule on `/users/{userId}/{document=**}`
- *   ensures a user can only ever read from their own data tree. This is highly
- *   performant as it doesn't require reading document data for authorization.
- * - Secure Collection Group Queries: The path-based read rule allows collection
- *   group queries (e.g., for all 'costItems' for a user) to be executed securely,
- *   as Firestore can verify that any document returned by the query must belong
- *   within the authenticated user's path.
- * - Granular Write Validation: While reads are broad within a user's scope,
- *   writes (create, update, delete) are granular. They verify that the incoming
- *   data contains the correct `userId` and that ownership (`userId`) cannot be changed.
- * - No Public Access: All operations require user authentication.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // -------------------------------------------------------------------------
-    // Helper Functions
-    // -------------------------------------------------------------------------
-
-    /**
-     * Verifies that the user is authenticated and their UID matches the
-     * userId variable captured in the path. This is the cornerstone of the
-     * path-based security model.
-     */
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    /**
-     * Verifies that the incoming document for a create or update operation
-     * has a 'userId' field that matches the authenticated user. Enforces
-     * data integrity and ownership on write.
-     */
-    function incomingDataIsOwnedBy(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * Verifies that the 'userId' field of a document is immutable, preventing
-     * ownership from being transferred.
-     */
-    function ownerIsImmutable() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    // -------------------------------------------------------------------------
-    // Global Read Rule for User Data
-    // -------------------------------------------------------------------------
-
-    /**
-     * @description Grants read access to any document within a user's data tree
-     *   if the requester is the owner of that tree. This single rule efficiently
-     *   secures all user documents and enables collection group queries.
-     * @path /users/{userId}/{document=**}
-     * @allow (read) An authenticated user accessing any document nested under
-     *   their own UID.
-     * @principle Path-based security is highly performant and the recommended
-     *   way to handle secure collection group queries.
-     */
+    // This single rule is the key to securing the entire database based on user ownership.
+    // It allows a user to perform any read operation (get, list) on any document
+    // that exists anywhere under their own user-specific path: `/users/{userId}`.
+    //
+    // WHY THIS WORKS FOR COLLECTION GROUP QUERIES:
+    // When a collection group query (e.g., for all 'revenueItems') is executed,
+    // Firestore's security rules can efficiently check if each potential document
+    // in the result set has a path that starts with `/users/` followed by the
+    // currently authenticated user's UID. It doesn't need to read the document's
+    // data to make this check, which is why this pattern is both secure and performant.
     match /users/{userId}/{document=**} {
-      allow read: if isOwner(userId);
+      allow read: if request.auth != null && request.auth.uid == userId;
     }
 
-    // -------------------------------------------------------------------------
-    // Granular Write Rules
-    // -------------------------------------------------------------------------
-
-    /**
-     * @description Manages user profile documents. The `read` rule is inherited.
-     *   Write rules validate data integrity.
-     * @path /users/{userId}
-     */
+    // WRITE-specific rules. While reads are handled globally above, writes are more granular.
+    
+    // User profile management
     match /users/{userId} {
-      allow list: if false; // Explicitly deny listing all users.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId);
+      // Deny anyone from listing all user profiles.
+      allow list: if false;
 
-      /**
-       * @description Manages financial projects. Inherits read rule.
-       *   Write rules validate ownership on incoming data.
-       * @path /users/{userId}/projects/{projectId}
-       */
-      match /projects/{projectId} {
-        allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
-        allow update: if isOwner(userId) && ownerIsImmutable();
-        allow delete: if isOwner(userId);
+      // Allow a user to create, update, or delete their own user profile document.
+      // We check that the UID in the path matches the authenticated user's UID.
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
 
-        /**
-         * @description Manages cost items. Inherits read rule.
-         * @path /users/{userId}/projects/{projectId}/costItems/{costItemId}
-         */
-        match /costItems/{costItemId} {
-          allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
-          allow update: if isOwner(userId) && ownerIsImmutable();
-          allow delete: if isOwner(userId);
-        }
+    // Project management
+    match /users/{userId}/projects/{projectId} {
+      // To create/update/delete a project, the user must be authenticated as the owner.
+      // We also enforce that the `userId` field within the document data is correct.
+      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+    }
 
-        /**
-         * @description Manages revenue items. Inherits read rule.
-         * @path /users/{userId}/projects/{projectId}/revenueItems/{revenueItemId}
-         */
-        match /revenueItems/{revenueItemId} {
-          allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
-          allow update: if isOwner(userId) && ownerIsImmutable();
-          allow delete: if isOwner(userId);
-        }
-      }
+    // Sub-collection management (Cost Items)
+    match /users/{userId}/projects/{projectId}/costItems/{costItemId} {
+       // The same ownership logic applies here.
+      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+    }
+    
+    // Sub-collection management (Revenue Items)
+    match /users/{userId}/projects/{projectId}/revenueItems/{revenueItemId} {
+       // The same ownership logic applies here.
+      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+    }
 
-      /**
-       * @description Manages user-specific payment methods. Inherits read rule.
-       * @path /users/{userId}/paymentMethods/{paymentMethodId}
-       */
-      match /paymentMethods/{paymentMethodId} {
-        allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
-        allow update: if isOwner(userId) && ownerIsImmutable();
-        allow delete: if isOwner(userId);
-      }
+    // Top-level sub-collection management (Payment Methods)
+    match /users/{userId}/paymentMethods/{paymentMethodId} {
+       // The same ownership logic applies here.
+      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+    }
 
-      /**
-       * @description Manages user-specific fixed costs. Inherits read rule.
-       * @path /users/{userId}/fixedCosts/{fixedCostId}
-       */
-      match /fixedCosts/{fixedCostId} {
-        allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
-        allow update: if isOwner(userId) && ownerIsImmutable();
-        allow delete: if isOwner(userId);
-      }
+    // Top-level sub-collection management (Fixed Costs)
+    match /users/{userId}/fixedCosts/{fixedCostId} {
+      // The same ownership logic applies here.
+      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
     }
   }
 }
