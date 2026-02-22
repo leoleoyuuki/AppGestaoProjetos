@@ -1,0 +1,204 @@
+/**
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for the Finestra Financials
+ * application. All data is considered private and is accessible only by the user
+ * who created it. There is no public or shared data.
+ *
+ * Data Structure:
+ * The data is organized hierarchically under a top-level `users` collection.
+ * Each user's data, including their profile, projects, costs, and revenues,
+ * is nested under a document corresponding to their unique authentication UID
+ * (e.g., /users/{userId}/...). This structure provides a natural security
+ * boundary for path-based authorization.
+ *
+ * Key Security Decisions:
+ * - User Isolation: All rules are scoped to `/users/{userId}`, ensuring users
+ *   can only ever access their own data tree.
+ * - No Public Access: All operations require user authentication.
+ * - User Enumeration Disabled: Listing the top-level `/users` collection is
+ *   explicitly forbidden to protect user privacy.
+ * - Authorization Independence: Every document contains a denormalized `userId`
+ *   field. This allows security rules to authorize requests without needing slow
+ *   and costly `get()` calls to parent documents, making the rules more performant
+ *   and secure.
+ *
+ * Denormalization for Authorization:
+ * To ensure fast and simple authorization, the owner's `userId` is copied
+ * directly onto every document (Projects, PaymentMethods, FixedCosts, CostItems,
+ * and RevenueItems). This allows rules to check ownership with a simple field
+ * read (e.g., `resource.data.userId == request.auth.uid`) instead of a
+ * cross-document `get()`.
+ *
+ * Structural Segregation:
+ * The entire data model uses structural segregation. A user's private data is
+ * stored in subcollections under their own `/users/{userId}` path. This clean
+ * separation ensures that all documents within a given collection path share the
+ * same security context, which simplifies rules and client-side queries.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Verifies that the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Verifies if the authenticated user's UID matches the provided userId.
+     * This is the primary function for checking document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Verifies ownership for an existing document. Used for update and delete
+     * operations to prevent acting on non-existent data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the incoming document has a 'userId' field that matches
+     * the authenticated user. Enforces relational integrity on document creation.
+     */
+    function incomingDataIsOwnedBy(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * Validates that the 'userId' field of a document is immutable.
+     * Prevents re-assigning ownership of a document after it has been created.
+     */
+    function ownerIsImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Manages user profile documents. A user can create their own
+     *   profile, and can only read, update, or delete their own document.
+     *   Listing of all users is disallowed.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own profile document,
+     *   e.g., POST /users/user_abc with auth.uid = 'user_abc'.
+     * @deny (list) Any user trying to list the /users collection to prevent
+     *   user enumeration.
+     * @principle Restricts access to a user's own data tree and allows
+     *   self-creation of a root user profile document.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Manages financial projects owned by a user. Only the user
+       *   can create, read, update, or delete their own projects.
+       * @path /users/{userId}/projects/{projectId}
+       * @allow (create) An authenticated user creating a new project within their
+       *   own user space, e.g., POST /users/user_abc/projects/proj_123.
+       * @deny (get) Another user trying to read a project, e.g., GET
+       *   /users/user_abc/projects/proj_123 with auth.uid = 'user_xyz'.
+       * @principle Enforces document ownership for all operations within a
+       *   user-specific subcollection.
+       */
+      match /projects/{projectId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
+        allow update: if isExistingOwner(userId) && ownerIsImmutable();
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Manages cost items for a specific project. Access is
+         *   inherited from the project's owner.
+         * @path /users/{userId}/projects/{projectId}/costItems/{costItemId}
+         * @allow (list) The project owner listing all cost items for one of their
+         *   projects.
+         * @deny (update) Any user other than the project owner trying to modify a
+         *   cost item.
+         * @principle Secures a nested subcollection by relying on the ownership
+         *   context established by the path (`userId`).
+         */
+        match /costItems/{costItemId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          // Note: create/update rules assume `userId` is denormalized onto CostItem documents
+          // as per the architectural reasoning for performance and security.
+          allow create: if isOwner(userId);
+          allow update: if isExistingOwner(userId);
+          allow delete: if isExistingOwner(userId);
+        }
+
+        /**
+         * @description Manages revenue items for a specific project. Access is
+         *   inherited from the project's owner.
+         * @path /users/{userId}/projects/{projectId}/revenueItems/{revenueItemId}
+         * @allow (list) The project owner listing all revenue items for one of their
+         *   projects.
+         * @deny (update) Any user other than the project owner trying to modify a
+         *   revenue item.
+         * @principle Secures a nested subcollection by relying on the ownership
+         *   context established by the path (`userId`).
+         */
+        match /revenueItems/{revenueItemId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          // Note: create/update rules assume `userId` is denormalized onto RevenueItem documents
+          // as per the architectural reasoning for performance and security.
+          allow create: if isOwner(userId);
+          allow update: if isExistingOwner(userId);
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+
+      /**
+       * @description Manages user-specific payment methods. Only the owner can
+       *   manage their own payment methods.
+       * @path /users/{userId}/paymentMethods/{paymentMethodId}
+       * @allow (create) A user adding a new payment method to their own profile.
+       * @deny (delete) A user trying to delete another user's payment method.
+       * @principle Enforces document ownership for all operations within a
+       *   user-specific subcollection.
+       */
+      match /paymentMethods/{paymentMethodId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
+        allow update: if isExistingOwner(userId) && ownerIsImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Manages user-specific fixed costs (e.g., rent, subscriptions).
+       *   Only the owner can manage their own fixed costs.
+       * @path /users/{userId}/fixedCosts/{fixedCostId}
+       * @allow (create) A user adding a new fixed cost to their own profile.
+       * @deny (get) A user trying to read another user's fixed costs.
+       * @principle Enforces document ownership for all operations within a
+       *   user-specific subcollection.
+       */
+      match /fixedCosts/{fixedCostId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && incomingDataIsOwnedBy(userId);
+        allow update: if isExistingOwner(userId) && ownerIsImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
