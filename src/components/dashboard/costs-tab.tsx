@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import DeviationAssistantDialog from './deviation-assistant-dialog';
 import { analyzeDeviation, type AnalyzeDeviationOutput, type AnalyzeDeviationInput } from "@/ai/flows/deviation-analysis-assistant";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, where, collection } from 'firebase/firestore';
+import { collectionGroup, query, collection } from 'firebase/firestore';
 import type { CostItem, Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -24,7 +24,7 @@ export default function CostsTab() {
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'costItems'), where('userId', '==', user.uid));
+    return query(collectionGroup(firestore, 'costItems'));
   }, [firestore, user]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
 
@@ -117,6 +117,7 @@ export default function CostsTab() {
     return projects?.find(p => p.id === projectId)?.name;
   };
   
+  const userCosts = costs?.filter(cost => cost.userId === user?.uid);
   const isLoading = costsLoading || projectsLoading;
 
   return (
@@ -153,7 +154,7 @@ export default function CostsTab() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && costs?.map(cost => {
+              {!isLoading && userCosts?.map(cost => {
                 const deviation = getDeviationStatus(cost);
                 return (
                   <TableRow key={cost.id}>

@@ -34,8 +34,8 @@ export default function OverviewTab() {
 
   const revenueItemsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // Note: This requires a composite index on (userId, receivedAmount) in Firestore.
-    return query(collectionGroup(firestore, 'revenueItems'), where('userId', '==', user.uid), where('receivedAmount', '==', 0));
+    // Security rules will filter by user. This query now requires a collection group index on receivedAmount.
+    return query(collectionGroup(firestore, 'revenueItems'), where('receivedAmount', '==', 0));
   }, [firestore, user]);
   const { data: pendingRevenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenueItemsQuery);
   
@@ -51,7 +51,9 @@ export default function OverviewTab() {
 
   const totalActualProfit = projects?.reduce((acc, proj) => acc + (proj.actualTotalRevenue - proj.actualTotalCost), 0) || 0;
   
-  const pendingRevenue = pendingRevenues?.reduce((acc, r) => acc + r.plannedAmount, 0) || 0;
+  // The query fetches for all users, but security rules filter it. We must filter again on the client.
+  const userPendingRevenue = pendingRevenues?.filter(r => r.userId === user?.uid) || [];
+  const pendingRevenue = userPendingRevenue.reduce((acc, r) => acc + r.plannedAmount, 0) || 0;
   
   const isLoading = projectsLoading || revenuesLoading || fixedCostsLoading;
 

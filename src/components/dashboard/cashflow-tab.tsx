@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, where, collection } from 'firebase/firestore';
+import { collectionGroup, query, collection } from 'firebase/firestore';
 import type { CostItem, RevenueItem, Project, Transaction } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,13 +20,13 @@ export default function CashflowTab() {
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'costItems'), where('userId', '==', user.uid));
+    return query(collectionGroup(firestore, 'costItems'));
   }, [firestore, user]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
 
   const revenuesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'revenueItems'), where('userId', '==', user.uid));
+    return query(collectionGroup(firestore, 'revenueItems'));
   }, [firestore, user]);
   const { data: revenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenuesQuery);
 
@@ -37,9 +37,12 @@ export default function CashflowTab() {
   const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
   const transactions: Transaction[] = useMemo(() => {
-    if (!costs || !revenues || !projects) return [];
+    if (!costs || !revenues || !projects || !user) return [];
+    
+    const userRevenues = revenues.filter(r => r.userId === user.uid);
+    const userCosts = costs.filter(c => c.userId === user.uid);
 
-    const revenueTransactions = revenues.map(r => ({
+    const revenueTransactions = userRevenues.map(r => ({
       id: `trans-rev-${r.id}`,
       type: 'Receita' as const,
       description: r.name,
@@ -50,7 +53,7 @@ export default function CashflowTab() {
       status: r.receivedAmount > 0 ? 'Recebido' as const : 'Pendente' as const,
     }));
 
-    const costTransactions = costs.map(c => ({
+    const costTransactions = userCosts.map(c => ({
       id: `trans-cost-${c.id}`,
       type: 'Custo' as const,
       description: c.name,
@@ -62,7 +65,7 @@ export default function CashflowTab() {
     }));
 
     return [...revenueTransactions, ...costTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [costs, revenues, projects]);
+  }, [costs, revenues, projects, user]);
   
   const isLoading = costsLoading || revenuesLoading || projectsLoading;
 

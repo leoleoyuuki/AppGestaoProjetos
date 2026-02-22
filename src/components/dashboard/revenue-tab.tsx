@@ -7,7 +7,7 @@ import { formatCurrency } from '@/lib/utils';
 import { PlusCircle } from 'lucide-react';
 import type { RevenueItem, Project } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, where, collection } from 'firebase/firestore';
+import { collectionGroup, query, collection } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RevenueTab() {
@@ -16,7 +16,7 @@ export default function RevenueTab() {
 
   const revenuesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'revenueItems'), where('userId', '==', user.uid));
+    return query(collectionGroup(firestore, 'revenueItems'));
   }, [firestore, user]);
   const { data: revenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenuesQuery);
   
@@ -30,6 +30,7 @@ export default function RevenueTab() {
     return projects?.find(p => p.id === projectId)?.name;
   };
   
+  const userRevenues = revenues?.filter(revenue => revenue.userId === user?.uid);
   const isLoading = revenuesLoading || projectsLoading;
 
 
@@ -65,7 +66,7 @@ export default function RevenueTab() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && revenues?.map(revenue => {
+              {!isLoading && userRevenues?.map(revenue => {
                 const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
                 return (
                   <TableRow key={revenue.id}>
