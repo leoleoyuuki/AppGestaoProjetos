@@ -2,60 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This single rule is the key to securing the entire database based on user ownership.
-    // It allows a user to perform any read operation (get, list) on any document
-    // that exists anywhere under their own user-specific path: `/users/{userId}`.
-    //
-    // WHY THIS WORKS FOR COLLECTION GROUP QUERIES:
-    // When a collection group query (e.g., for all 'revenueItems') is executed,
-    // Firestore's security rules can efficiently check if each potential document
-    // in the result set has a path that starts with `/users/` followed by the
-    // currently authenticated user's UID. It doesn't need to read the document's
-    // data to make this check, which is why this pattern is both secure and performant.
+    // Regra de leitura global para dados de propriedade do usuário.
+    // Isso permite que as consultas de grupo de coleção funcionem de forma segura e eficiente.
     match /users/{userId}/{document=**} {
       allow read: if request.auth != null && request.auth.uid == userId;
     }
 
-    // WRITE-specific rules. While reads are handled globally above, writes are more granular.
-    
-    // User profile management
+    // Gerenciamento de perfil de usuário
     match /users/{userId} {
-      // Deny anyone from listing all user profiles.
-      allow list: if false;
-
-      // Allow a user to create, update, or delete their own user profile document.
-      // We check that the UID in the path matches the authenticated user's UID.
+      allow list: if false; // Nega a listagem de todos os usuários.
+      // A regra de escrita é separada da regra de leitura global.
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Project management
+    // Gerenciamento de projetos
     match /users/{userId}/projects/{projectId} {
-      // To create/update/delete a project, the user must be authenticated as the owner.
-      // We also enforce that the `userId` field within the document data is correct.
       allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
     }
 
-    // Sub-collection management (Cost Items)
+    // Itens de Custo
     match /users/{userId}/projects/{projectId}/costItems/{costItemId} {
-       // The same ownership logic applies here.
       allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
     }
     
-    // Sub-collection management (Revenue Items)
+    // Itens de Receita
     match /users/{userId}/projects/{projectId}/revenueItems/{revenueItemId} {
-       // The same ownership logic applies here.
       allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
     }
 
-    // Top-level sub-collection management (Payment Methods)
+    // Métodos de Pagamento
     match /users/{userId}/paymentMethods/{paymentMethodId} {
-       // The same ownership logic applies here.
       allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
     }
 
-    // Top-level sub-collection management (Fixed Costs)
+    // Custos Fixos
     match /users/{userId}/fixedCosts/{fixedCostId} {
-      // The same ownership logic applies here.
       allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
     }
   }
