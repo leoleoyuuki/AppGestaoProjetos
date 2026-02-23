@@ -13,6 +13,7 @@ import type { CostItem, Project } from '@/lib/types';
 import { CostItemForm, type CostItemFormValues } from './cost-item-form';
 import { addCostItem, updateCostItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { CostItemFormData } from '@/lib/types';
 
 interface CostItemDialogProps {
   costItem?: CostItem;
@@ -36,17 +37,24 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
     setIsSubmitting(true);
     const costData = {
       ...values,
-      projectId: values.projectId || undefined,
       transactionDate: values.transactionDate.toISOString().split('T')[0], // format to 'YYYY-MM-DD'
       userId: user.uid
     };
+
+    // Firestore throws an error if any field value is `undefined`.
+    // If projectId is falsy (e.g., from selecting 'None'), delete it from the object
+    // so Firestore either omits it (on create) or ignores it (on update).
+    if (!costData.projectId) {
+      delete (costData as Partial<typeof costData>).projectId;
+    }
+
 
     try {
       if (costItem) {
         updateCostItem(firestore, user.uid, costItem.id, costData);
         toast({ title: 'Sucesso!', description: 'Custo atualizado.' });
       } else {
-        addCostItem(firestore, user.uid, costData);
+        addCostItem(firestore, user.uid, costData as CostItemFormData);
         toast({ title: 'Sucesso!', description: 'Custo criado.' });
       }
       onOpenChange(false);
