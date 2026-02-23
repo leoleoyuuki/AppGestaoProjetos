@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { PlusCircle, AlertCircle, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import DeviationAssistantDialog from './deviation-assistant-dialog';
 import { analyzeDeviation, type AnalyzeDeviationOutput, type AnalyzeDeviationInput } from "@/ai/flows/deviation-analysis-assistant";
@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CostItemDialog } from './cost-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteCostItem } from '@/lib/actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function CostsTab() {
   const { toast } = useToast();
@@ -133,6 +134,7 @@ export default function CostsTab() {
   };
   
   const userCosts = costs?.filter(cost => cost.userId === user?.uid);
+  const recurringCosts = userCosts?.filter(cost => cost.isRecurring);
   const isLoading = costsLoading || projectsLoading;
 
   const openDialogForEdit = (cost: CostItem) => {
@@ -145,81 +147,129 @@ export default function CostsTab() {
     setCostItemDialogOpen(true);
   }
 
+  const renderTableRows = (costList: CostItem[] | undefined) => {
+    if (!costList) return null;
+    return costList.map(cost => {
+      const deviation = getDeviationStatus(cost);
+      return (
+        <TableRow key={cost.id}>
+          <TableCell className="font-medium">{cost.name}</TableCell>
+          <TableCell>{getProjectName(cost.projectId)}</TableCell>
+          <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
+          <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
+          <TableCell className="text-right">{formatCurrency(cost.actualAmount)}</TableCell>
+          <TableCell className="text-center">
+            {deviation ? (
+              <Badge variant={deviation.isOver ? "destructive" : "secondary"}>
+                {deviation.isOver ? '▲' : '▼'} {deviation.percentage.toFixed(0)}%
+              </Badge>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            )}
+          </TableCell>
+          <TableCell className="text-right">
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAnalysis(cost.projectId)}>
+                   Analisar Desvio
+                 </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        </TableRow>
+      );
+    });
+  }
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Todos os Custos</CardTitle>
+          <CardTitle>Gerenciamento de Custos</CardTitle>
           <Button size="sm" onClick={openDialogForCreate}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Custo
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Projeto</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead className="text-right">Previsto</TableHead>
-                <TableHead className="text-right">Real</TableHead>
-                <TableHead className="text-center">Desvio</TableHead>
-                <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <div className="space-y-2">
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && userCosts?.map(cost => {
-                const deviation = getDeviationStatus(cost);
-                return (
-                  <TableRow key={cost.id}>
-                    <TableCell className="font-medium">{cost.name}</TableCell>
-                    <TableCell>{getProjectName(cost.projectId)}</TableCell>
-                    <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
-                    <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(cost.actualAmount)}</TableCell>
-                    <TableCell className="text-center">
-                      {deviation ? (
-                        <Badge variant={deviation.isOver ? "destructive" : "secondary"}>
-                          {deviation.isOver ? '▲' : '▼'} {deviation.percentage.toFixed(0)}%
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAnalysis(cost.projectId)}>
-                             Analisar Desvio
-                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+          <Tabs defaultValue="all">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="all">Todos os Custos</TabsTrigger>
+              <TabsTrigger value="recurring">Custos Recorrentes</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all" className="mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Projeto</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead className="text-right">Previsto</TableHead>
+                    <TableHead className="text-right">Real</TableHead>
+                    <TableHead className="text-center">Desvio</TableHead>
+                    <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && (
+                    <TableRow>
+                      <TableCell colSpan={7}>
+                        <div className="space-y-2">
+                          <Skeleton className="h-8 w-full" />
+                          <Skeleton className="h-8 w-full" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoading && renderTableRows(userCosts)}
+                </TableBody>
+              </Table>
+            </TabsContent>
+            <TabsContent value="recurring" className="mt-4">
+               <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Projeto</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead className="text-right">Previsto</TableHead>
+                    <TableHead className="text-right">Real</TableHead>
+                    <TableHead className="text-center">Desvio</TableHead>
+                    <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && (
+                    <TableRow>
+                      <TableCell colSpan={7}>
+                        <div className="space-y-2">
+                          <Skeleton className="h-8 w-full" />
+                          <Skeleton className="h-8 w-full" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoading && recurringCosts && recurringCosts.length > 0 && renderTableRows(recurringCosts)}
+                  {!isLoading && (!recurringCosts || recurringCosts.length === 0) && (
+                    <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center">
+                            Nenhum custo recorrente encontrado.
+                        </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
       <DeviationAssistantDialog
