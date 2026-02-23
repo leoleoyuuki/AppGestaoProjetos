@@ -285,15 +285,17 @@ export default function CostsTab() {
             costItem={editingCostItem}
          />
       )}
-      {deletingCostItem && (
-        <DeleteAlertDialog
-          isOpen={!!deletingCostItem}
-          onOpenChange={(isOpen) => !isOpen && setDeletingCostItem(undefined)}
-          onConfirm={handleDeleteConfirm}
-          title="Tem certeza que deseja excluir este custo?"
-          description="Esta ação não pode ser desfeita e irá remover permanentemente o item de custo."
-        />
-      )}
+      <DeleteAlertDialog
+        isOpen={!!deletingCostItem}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setDeletingCostItem(undefined);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Tem certeza que deseja excluir este custo?"
+        description="Esta ação não pode ser desfeita e irá remover permanentemente o item de custo."
+      />
     </div>
   );
 }

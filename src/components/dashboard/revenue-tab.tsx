@@ -135,15 +135,17 @@ export default function RevenueTab() {
             revenueItem={editingRevenueItem}
          />
       )}
-      {deletingRevenueItem && (
-        <DeleteAlertDialog
-          isOpen={!!deletingRevenueItem}
-          onOpenChange={(isOpen) => !isOpen && setDeletingRevenueItem(undefined)}
-          onConfirm={handleDeleteConfirm}
-          title="Tem certeza que deseja excluir esta receita?"
-          description="Esta ação não pode ser desfeita e irá remover permanentemente o item de receita."
-        />
-      )}
+      <DeleteAlertDialog
+        isOpen={!!deletingRevenueItem}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setDeletingRevenueItem(undefined);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Tem certeza que deseja excluir esta receita?"
+        description="Esta ação não pode ser desfeita e irá remover permanentemente o item de receita."
+      />
     </div>
   );
 }

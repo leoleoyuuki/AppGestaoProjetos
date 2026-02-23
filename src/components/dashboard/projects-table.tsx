@@ -117,15 +117,17 @@ export default function ProjectsTable() {
           ))}
         </TableBody>
       </Table>
-      {deletingProject && (
-        <DeleteAlertDialog
-          isOpen={!!deletingProject}
-          onOpenChange={(isOpen) => !isOpen && setDeletingProject(undefined)}
-          onConfirm={handleDeleteConfirm}
-          title="Tem certeza que deseja excluir este projeto?"
-          description="Esta ação não pode ser desfeita. Todos os dados associados a este projeto serão perdidos."
-        />
-      )}
+      <DeleteAlertDialog
+        isOpen={!!deletingProject}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setDeletingProject(undefined);
+          }
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Tem certeza que deseja excluir este projeto?"
+        description="Esta ação não pode ser desfeita. Todos os dados associados a este projeto serão perdidos."
+      />
     </>
   );
 }
