@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAuth, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import type { Project } from '@/lib/types';
 import { ProjectForm, type ProjectFormValues } from './project-form';
 import { addProject, updateProject } from '@/lib/actions';
@@ -22,7 +22,7 @@ interface ProjectDialogProps {
 
 export function ProjectDialog({ project, isOpen, onOpenChange }: ProjectDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 

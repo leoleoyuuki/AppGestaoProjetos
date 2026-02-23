@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAuth, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import type { CostItem, Project } from '@/lib/types';
 import { CostItemForm, type CostItemFormValues } from './cost-item-form';
 import { addCostItem, updateCostItem } from '@/lib/actions';
@@ -23,7 +23,7 @@ interface CostItemDialogProps {
 
 export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: CostItemDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 

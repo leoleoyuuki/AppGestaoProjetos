@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAuth, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import type { RevenueItem, Project } from '@/lib/types';
 import { RevenueItemForm, type RevenueItemFormValues } from './revenue-item-form';
 import { addRevenueItem, updateRevenueItem } from '@/lib/actions';
@@ -23,7 +23,7 @@ interface RevenueItemDialogProps {
 
 export function RevenueItemDialog({ revenueItem, projects, isOpen, onOpenChange }: RevenueItemDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
