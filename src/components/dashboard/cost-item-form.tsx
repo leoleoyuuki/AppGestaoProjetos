@@ -34,7 +34,7 @@ const costCategories: CostCategory[] = ['Mão de obra', 'Materiais', 'Marketing'
 
 const costItemFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
-  projectId: z.string({ required_error: 'Selecione um projeto.' }),
+  projectId: z.string().optional(),
   category: z.enum(costCategories),
   plannedAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
   actualAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
@@ -67,7 +67,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
     ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate) }
     : {
         name: '',
-        projectId: projects.length > 0 ? projects[0].id : undefined,
+        projectId: projects.length === 1 ? projects[0].id : '',
         category: 'Outros' as CostCategory,
         plannedAmount: 0,
         actualAmount: 0,
@@ -110,6 +110,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="">Nenhum (Custo da Empresa)</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}

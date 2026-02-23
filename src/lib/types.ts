@@ -34,7 +34,7 @@ export interface Project extends DocumentData {
 
 export interface CostItem extends DocumentData {
     id: string;
-    projectId: string;
+    projectId?: string;
     userId: string;
     name: string;
     category: CostCategory;

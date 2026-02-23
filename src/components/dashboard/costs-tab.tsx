@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import DeviationAssistantDialog from './deviation-assistant-dialog';
 import { analyzeDeviation, type AnalyzeDeviationOutput, type AnalyzeDeviationInput } from "@/ai/flows/deviation-analysis-assistant";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import type { CostItem, Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -33,7 +33,7 @@ export default function CostsTab() {
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'costItems'));
+    return query(collection(firestore, `users/${user.uid}/costItems`));
   }, [firestore, user]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
 
@@ -73,7 +73,7 @@ export default function CostsTab() {
       predictedCost,
       actualCost,
       deviationThresholdPercentage: 10,
-      projectDescription: `Análise de custos para o projeto ${project.name}, com início em ${project.startDate}.`,
+      projectDescription: `Análise de custos para o projeto ${project.name}.`,
       costCategories: projectCosts.map(cost => ({
         category: cost.category,
         predicted: cost.plannedAmount,
@@ -122,19 +122,19 @@ export default function CostsTab() {
     return null;
   }
 
-  const getProjectName = (projectId: string) => {
+  const getProjectName = (projectId?: string) => {
+    if (!projectId) return 'Nenhum (Custo da Empresa)';
     return projects?.find(p => p.id === projectId)?.name;
   };
 
   const handleDeleteConfirm = () => {
     if (!deletingCostItem || !user) return;
-    deleteCostItem(firestore, user.uid, deletingCostItem.projectId, deletingCostItem.id);
+    deleteCostItem(firestore, user.uid, deletingCostItem.id);
     toast({ title: 'Sucesso', description: 'Custo excluído.' });
     setDeletingCostItem(undefined);
   };
   
-  const userCosts = costs?.filter(cost => cost.userId === user?.uid);
-  const recurringCosts = userCosts?.filter(cost => cost.isRecurring);
+  const recurringCosts = costs?.filter(cost => cost.isRecurring);
   const isLoading = costsLoading || projectsLoading;
 
   const openDialogForEdit = (cost: CostItem) => {
@@ -176,9 +176,9 @@ export default function CostsTab() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleAnalysis(cost.projectId)}>
+                {cost.projectId && <DropdownMenuItem onClick={() => handleAnalysis(cost.projectId!)}>
                    Analisar Desvio
-                 </DropdownMenuItem>
+                 </DropdownMenuItem>}
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
                   Excluir
                 </DropdownMenuItem>
@@ -230,7 +230,7 @@ export default function CostsTab() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {!isLoading && renderTableRows(userCosts)}
+                  {!isLoading && renderTableRows(costs)}
                 </TableBody>
               </Table>
             </TabsContent>

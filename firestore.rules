@@ -26,17 +26,17 @@ service cloud.firestore {
         allow read, update, delete: if request.auth != null && request.auth.uid == userId;
         allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
 
-        // --- Cost Items Subcollection ---
-        match /costItems/{costItemId} {
-          allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-          allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
-        }
-
         // --- Revenue Items Subcollection ---
         match /revenueItems/{revenueItemId} {
           allow read, update, delete: if request.auth != null && request.auth.uid == userId;
           allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
         }
+      }
+      
+      // --- Cost Items Collection ---
+      match /costItems/{costItemId} {
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
       }
 
       // --- Payment Methods Subcollection ---

@@ -148,14 +148,12 @@ export type CostItemFormData = Omit<CostItem, 'id' | 'createdAt' | 'updatedAt'>;
 export function addCostItem(
   firestore: Firestore,
   userId: string,
-  projectId: string,
   costItemData: CostItemFormData
 ) {
-  const costItemsColRef = collection(firestore, `users/${userId}/projects/${projectId}/costItems`);
+  const costItemsColRef = collection(firestore, `users/${userId}/costItems`);
   const data = {
     ...costItemData,
     userId,
-    projectId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -175,11 +173,10 @@ export function addCostItem(
 export function updateCostItem(
   firestore: Firestore,
   userId: string,
-  projectId: string,
   costItemId: string,
   costItemData: Partial<CostItemFormData>
 ) {
-  const costItemDocRef = doc(firestore, `users/${userId}/projects/${projectId}/costItems`, costItemId);
+  const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItemId);
   const data = {
     ...costItemData,
     updatedAt: serverTimestamp(),
@@ -200,10 +197,9 @@ export function updateCostItem(
 export function deleteCostItem(
   firestore: Firestore,
   userId: string,
-  projectId: string,
   costItemId: string
 ) {
-  const costItemDocRef = doc(firestore, `users/${userId}/projects/${projectId}/costItems`, costItemId);
+  const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItemId);
   deleteDoc(costItemDocRef).catch(error => {
     errorEmitter.emit(
       'permission-error',

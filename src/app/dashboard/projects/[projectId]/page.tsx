@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query } from 'firebase/firestore';
+import { doc, collection, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,9 +34,9 @@ export default function ProjectDetailPage() {
   const { data: project, isLoading: projectLoading } = useDoc<Project>(projectRef);
 
   const costsQuery = useMemoFirebase(() => {
-    if (!projectRef) return null;
-    return query(collection(projectRef, 'costItems'));
-  }, [projectRef]);
+    if (!user || !firestore || !projectId) return null;
+    return query(collection(firestore, `users/${user.uid}/costItems`), where("projectId", "==", projectId));
+  }, [firestore, user, projectId]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
   
   const revenuesQuery = useMemoFirebase(() => {

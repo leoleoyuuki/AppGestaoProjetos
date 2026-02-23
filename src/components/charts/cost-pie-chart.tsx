@@ -9,7 +9,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import type { CostItem } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from "../ui/skeleton";
@@ -48,16 +48,14 @@ export default function CostPieChart() {
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'costItems'));
+    return query(collection(firestore, `users/${user.uid}/costItems`));
   }, [firestore, user]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
   
   const chartData = useMemo(() => {
     if(!costs) return [];
-    // Filter costs for the current user, as the query now fetches across all users
-    // and security rules handle the filtering at the backend.
-    const userCosts = costs.filter(cost => cost.userId === user?.uid);
-    const costDataByCategory = userCosts.reduce((acc, cost) => {
+    
+    const costDataByCategory = costs.reduce((acc, cost) => {
         const totalCost = cost.actualAmount > 0 ? cost.actualAmount : cost.plannedAmount
         if (!acc[cost.category]) {
             acc[cost.category] = { name: cost.category, value: 0 };
@@ -67,7 +65,7 @@ export default function CostPieChart() {
     }, {} as { [key: string]: { name: string, value: number } });
 
     return Object.values(costDataByCategory);
-  }, [costs, user]);
+  }, [costs]);
 
 
   if (costsLoading) {

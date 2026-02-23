@@ -41,7 +41,7 @@ export default function OverviewTab() {
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'costItems'));
+    return query(collection(firestore, `users/${user.uid}/costItems`));
   }, [firestore, user]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
 
@@ -65,8 +65,7 @@ export default function OverviewTab() {
         averageMargin: 0,
       };
     }
-
-    const userCosts = costs.filter(c => c.userId === user.uid);
+    
     const userRevenues = revenues.filter(r => r.userId === user.uid);
 
     // Monthly metrics
@@ -76,7 +75,7 @@ export default function OverviewTab() {
     const monthlyRevenues = userRevenues.filter(r =>
       isWithinInterval(new Date(r.transactionDate), { start: monthStart, end: monthEnd })
     );
-    const monthlyCosts = userCosts.filter(c =>
+    const monthlyCosts = costs.filter(c =>
       isWithinInterval(new Date(c.transactionDate), { start: monthStart, end: monthEnd })
     );
 
@@ -92,7 +91,7 @@ export default function OverviewTab() {
     );
     const totalReceivable = receivableItems.reduce((acc, r) => acc + r.plannedAmount, 0);
 
-    const payableItems = userCosts.filter(c =>
+    const payableItems = costs.filter(c =>
       (!c.actualAmount || c.actualAmount === 0) && isWithinInterval(new Date(c.transactionDate), { start: today, end: thirtyDaysFromNow })
     );
     const totalPayable = payableItems.reduce((acc, c) => acc + c.plannedAmount, 0);

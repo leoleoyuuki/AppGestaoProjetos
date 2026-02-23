@@ -20,7 +20,7 @@ export default function CashflowTab() {
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'costItems'));
+    return query(collection(firestore, `users/${user.uid}/costItems`));
   }, [firestore, user]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
 
@@ -40,7 +40,6 @@ export default function CashflowTab() {
     if (!costs || !revenues || !projects || !user) return [];
     
     const userRevenues = revenues.filter(r => r.userId === user.uid);
-    const userCosts = costs.filter(c => c.userId === user.uid);
 
     const revenueTransactions = userRevenues.map(r => ({
       id: `trans-rev-${r.id}`,
@@ -53,7 +52,7 @@ export default function CashflowTab() {
       status: r.receivedAmount > 0 ? 'Recebido' as const : 'Pendente' as const,
     }));
 
-    const costTransactions = userCosts.map(c => ({
+    const costTransactions = costs.map(c => ({
       id: `trans-cost-${c.id}`,
       type: 'Custo' as const,
       description: c.name,

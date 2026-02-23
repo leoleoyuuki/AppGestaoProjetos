@@ -36,16 +36,17 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
     setIsSubmitting(true);
     const costData = {
       ...values,
+      projectId: values.projectId || undefined,
       transactionDate: values.transactionDate.toISOString().split('T')[0], // format to 'YYYY-MM-DD'
       userId: user.uid
     };
 
     try {
       if (costItem) {
-        updateCostItem(firestore, user.uid, costItem.projectId, costItem.id, costData);
+        updateCostItem(firestore, user.uid, costItem.id, costData);
         toast({ title: 'Sucesso!', description: 'Custo atualizado.' });
       } else {
-        addCostItem(firestore, user.uid, costData.projectId, costData);
+        addCostItem(firestore, user.uid, costData);
         toast({ title: 'Sucesso!', description: 'Custo criado.' });
       }
       onOpenChange(false);

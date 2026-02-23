@@ -190,7 +190,6 @@
       },
       "required": [
         "id",
-        "projectId",
         "userId",
         "name",
         "category",
@@ -439,21 +438,17 @@
         }
       },
       {
-        "path": "/users/{userId}/projects/{projectId}/costItems/{costItemId}",
+        "path": "/users/{userId}/costItems/{costItemId}",
         "definition": {
           "entityName": "CostItem",
           "schema": {
             "$ref": "#/backend/entities/CostItem"
           },
-          "description": "Subcollection for cost entries related to a specific project. The 'userId' from the parent project is denormalized into each CostItem document for authorization independence.",
+          "description": "Collection for cost entries. Can be optionally linked to a project. The 'userId' is denormalized for authorization.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user who owns the parent project."
-            },
-            {
-              "name": "projectId",
-              "description": "The unique identifier of the parent project."
+              "description": "The unique identifier of the user who owns this cost item."
             },
             {
               "name": "costItemId",
