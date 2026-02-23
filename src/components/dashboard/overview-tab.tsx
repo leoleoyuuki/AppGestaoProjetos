@@ -11,7 +11,7 @@ import {
   TrendingDown,
   Percent,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ProjectDialog } from './project-dialog';
 import KeyMetricCard from './overview/key-metric-card';
 import ProjectList from './overview/project-list';
@@ -27,7 +27,11 @@ import MonthlyIOChart from './overview/monthly-io-chart';
 
 export default function OverviewTab() {
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
-  const [date, setDate] = useState<Date>(new Date());
+  const [date, setDate] = useState<Date | undefined>();
+
+  useEffect(() => {
+    setDate(new Date());
+  }, []);
 
   const { user } = useUser();
   const firestore = useFirestore();
@@ -55,7 +59,7 @@ export default function OverviewTab() {
 
   // Memoize calculations
   const metrics = useMemo(() => {
-    if (isLoading || !costs || !revenues || !projects || !user) {
+    if (isLoading || !costs || !revenues || !projects || !user || !date) {
       return {
         revenue: 0,
         cost: 0,
@@ -129,6 +133,7 @@ export default function OverviewTab() {
             <PopoverTrigger asChild>
               <Button
                 variant={'outline'}
+                disabled={!date}
                 className={cn(
                   'w-[240px] justify-start text-left font-normal',
                   !date && 'text-muted-foreground'
@@ -146,7 +151,7 @@ export default function OverviewTab() {
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={d => setDate(d || new Date())}
+                onSelect={setDate}
                 initialFocus
               />
             </PopoverContent>
@@ -161,14 +166,14 @@ export default function OverviewTab() {
         <KeyMetricCard
           title="Receita no Mês"
           value={formatCurrency(metrics.revenue)}
-          subText={`Em ${format(date, 'MMMM', { locale: ptBR })}`}
+          subText={date ? `Em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
           Icon={DollarSign}
           isLoading={isLoading}
         />
         <KeyMetricCard
           title="Custo no Mês"
           value={formatCurrency(metrics.cost)}
-          subText={`Em ${format(date, 'MMMM', { locale: ptBR })}`}
+          subText={date ? `Em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
           Icon={Wallet}
           isLoading={isLoading}
           isNegative={true}
@@ -176,7 +181,7 @@ export default function OverviewTab() {
         <KeyMetricCard
           title="Resultado do Mês"
           value={formatCurrency(metrics.result)}
-          subText={`Em ${format(date, 'MMMM', { locale: ptBR })}`}
+          subText={date ? `Em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
           Icon={Activity}
           isLoading={isLoading}
           isNegative={metrics.result < 0}

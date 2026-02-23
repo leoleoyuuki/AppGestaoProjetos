@@ -31,7 +31,7 @@ import { format } from 'date-fns';
 import type { CostItem, Project, CostCategory } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Separator } from '../ui/separator';
 import { AddCategoryDialog } from './add-category-dialog';
 
@@ -78,7 +78,9 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
   }, [firestore, user]);
   const { data: costCategories, isLoading: categoriesLoading } = useCollection<CostCategory>(categoriesQuery);
   
-  const defaultValues = costItem
+  const form = useForm<CostItemFormValues>({
+    resolver: zodResolver(costItemFormSchema),
+    defaultValues: costItem
     ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate) }
     : {
         name: '',
@@ -89,13 +91,19 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
         actualAmount: 0,
         description: '',
         isRecurring: false,
-        transactionDate: new Date(),
-      };
-
-  const form = useForm<CostItemFormValues>({
-    resolver: zodResolver(costItemFormSchema),
-    defaultValues,
+        // Use a static placeholder for SSR, will be updated in useEffect
+        transactionDate: new Date(0), 
+      },
   });
+
+  useEffect(() => {
+    // This runs only on the client, after hydration
+    if (!costItem) {
+      // For new items, set the date to today
+      form.setValue('transactionDate', new Date());
+    }
+  }, [costItem, form]);
+
 
   return (
     <>
@@ -238,7 +246,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                           !field.value && 'text-muted-foreground'
                         )}
                       >
-                        {field.value ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
+                        {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>

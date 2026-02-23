@@ -27,6 +27,7 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Project, ProjectStatus } from '@/lib/types';
+import { useEffect } from 'react';
 
 const projectStatus: ProjectStatus[] = ['Pendente', 'Em andamento', 'Instalado', 'Concluído', 'Cancelado'];
 
@@ -62,7 +63,9 @@ const parseDateString = (dateString: string | Date): Date => {
 };
 
 export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: ProjectFormProps) {
-  const defaultValues = project
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: project
     ? {
         ...project,
         startDate: parseDateString(project.startDate),
@@ -74,13 +77,19 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
         status: 'Pendente' as ProjectStatus,
         plannedTotalCost: 0,
         plannedTotalRevenue: 0,
-        startDate: new Date(),
-      };
-
-  const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(projectFormSchema),
-    defaultValues,
+        // Use a static placeholder for SSR, will be updated in useEffect
+        startDate: new Date(0),
+      },
   });
+
+  useEffect(() => {
+    // This runs only on the client, after hydration
+    if (!project) {
+      // For new projects, set the date to today
+      form.setValue('startDate', new Date());
+    }
+  }, [project, form]);
+
 
   return (
     <Form {...form}>
@@ -141,7 +150,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                           !field.value && 'text-muted-foreground'
                         )}
                       >
-                        {field.value ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
+                        {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>

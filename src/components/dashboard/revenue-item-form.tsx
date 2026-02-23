@@ -29,6 +29,7 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { RevenueItem, Project } from '@/lib/types';
+import { useEffect } from 'react';
 
 const revenueItemFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -60,7 +61,9 @@ const parseDateString = (dateString: string | Date): Date => {
 };
 
 export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isSubmitting }: RevenueItemFormProps) {
-  const defaultValues = revenueItem
+  const form = useForm<RevenueItemFormValues>({
+    resolver: zodResolver(revenueItemFormSchema),
+    defaultValues: revenueItem
     ? { ...revenueItem, transactionDate: parseDateString(revenueItem.transactionDate) }
     : {
         name: '',
@@ -69,13 +72,18 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
         receivedAmount: 0,
         description: '',
         isInstallment: false,
-        transactionDate: new Date(),
-      };
-
-  const form = useForm<RevenueItemFormValues>({
-    resolver: zodResolver(revenueItemFormSchema),
-    defaultValues,
+        // Use a static placeholder for SSR, will be updated in useEffect
+        transactionDate: new Date(0),
+      },
   });
+
+  useEffect(() => {
+    // This runs only on the client, after hydration
+    if (!revenueItem) {
+      // For new items, set the date to today
+      form.setValue('transactionDate', new Date());
+    }
+  }, [revenueItem, form]);
 
   return (
     <Form {...form}>
@@ -161,7 +169,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                         !field.value && 'text-muted-foreground'
                       )}
                     >
-                      {field.value ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
+                      {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </FormControl>
