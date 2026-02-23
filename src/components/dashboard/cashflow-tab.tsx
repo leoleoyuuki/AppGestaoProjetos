@@ -14,6 +14,7 @@ import type { CostItem, RevenueItem, Project, Transaction, CostCategory, UserPro
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
+import Link from 'next/link';
 
 export default function CashflowTab() {
   const { user } = useUser();
@@ -106,6 +107,25 @@ export default function CashflowTab() {
 
   return (
     <div className="space-y-6">
+       {!isLoading && (!userProfile || !userProfile.initialCashBalance) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Bem-vindo ao Fluxo de Caixa!</CardTitle>
+            <CardDescription>
+              Para começar, informe seu saldo inicial. Isso é essencial para calcular
+              o saldo atual da sua empresa com precisão.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href="/dashboard/settings">
+                <Landmark className="mr-2 h-4 w-4" />
+                Definir Saldo Inicial
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <KeyMetricCard title="Saldo Inicial" value={formatCurrency(initialBalance)} Icon={Landmark} isLoading={isLoading} />
             <KeyMetricCard title="Total de Entradas" value={formatCurrency(totalRevenue)} Icon={TrendingUp} isLoading={isLoading} />
