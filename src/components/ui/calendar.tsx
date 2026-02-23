@@ -31,8 +31,7 @@ function Calendar({
         caption_label: "hidden", // Hide the default label
         caption_dropdowns: "flex gap-2 [&_.rdp-vhidden]:hidden", // Style the dropdown container and hide vhidden
         nav: "hidden", // Hide the nav buttons
-        table: "w-full border-collapse space-y-1 mt-4",
-        head_row: "flex", // Show the head row
+        head_row: "hidden", // Hide the head row with weekdays
         head_cell:
           "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
