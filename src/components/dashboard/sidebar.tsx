@@ -12,17 +12,17 @@ import {
 import Logo from '@/components/logo';
 import {
   LayoutDashboard,
-  Calendar,
   Settings,
   CircleHelp,
   LogOut,
   Wallet,
   BarChart3,
-  Users,
+  TrendingUp,
+  ArrowLeftRight,
 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
@@ -37,10 +37,10 @@ interface AppSidebarProps {
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'costs', label: 'Tasks', icon: Wallet },
-  { id: 'revenue', label: 'Calendar', icon: Calendar },
-  { id: 'reports', label: 'Analytics', icon: BarChart3 },
-  { id: 'cashflow', label: 'Team', icon: Users },
+  { id: 'costs', label: 'Custos', icon: Wallet },
+  { id: 'revenue', label: 'Receitas', icon: TrendingUp },
+  { id: 'cashflow', label: 'Fluxo de Caixa', icon: ArrowLeftRight },
+  { id: 'reports', label: 'Relatórios', icon: BarChart3 },
 ];
 
 const generalItems = [
@@ -112,7 +112,7 @@ export default function AppSidebar({ activeView, setActiveView }: AppSidebarProp
       <SidebarFooter className="mt-auto p-2">
          <Card className="relative overflow-hidden bg-primary text-primary-foreground">
             {downloadAppImage && (
-              <Image src={downloadAppImage.imageUrl} alt="Download App background" layout="fill" objectFit="cover" className="opacity-20" />
+              <Image src={downloadAppImage.imageUrl} alt="Download App background" fill objectFit="cover" className="opacity-20" />
             )}
             <CardContent className="relative z-10 p-4 text-center">
                  <div className="mb-4 mt-2 rounded-full bg-white/30 size-10 mx-auto flex items-center justify-center">

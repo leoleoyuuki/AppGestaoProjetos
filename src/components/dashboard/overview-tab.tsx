@@ -7,9 +7,7 @@ import KeyMetricCard from './overview/key-metric-card';
 import ProjectAnalyticsChart from './overview/project-analytics-chart';
 import RemindersCard from './overview/reminders-card';
 import ProjectList from './overview/project-list';
-import TeamCollaborationCard from './overview/team-collaboration-card';
 import ProjectProgressChart from './overview/project-progress-chart';
-import TimeTrackerCard from './overview/time-tracker-card';
 
 
 export default function OverviewTab() {
@@ -21,7 +19,7 @@ export default function OverviewTab() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Plan, prioritize, and accomplish your tasks with ease.
+            Acompanhe o progresso e as finanças do seu projeto.
           </p>
         </div>
         <div className='flex gap-2'>
@@ -43,17 +41,13 @@ export default function OverviewTab() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <ProjectAnalyticsChart />
-          <TeamCollaborationCard />
+          <ProjectList />
         </div>
         <div className="space-y-6">
            <RemindersCard />
-           <ProjectList />
+           <ProjectProgressChart />
         </div>
       </div>
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-          <ProjectProgressChart />
-          <TimeTrackerCard />
-       </div>
       <ProjectDialog isOpen={isProjectDialogOpen} onOpenChange={setProjectDialogOpen} />
     </>
   );
