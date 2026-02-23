@@ -28,6 +28,10 @@
           "type": "string",
           "description": "Timestamp when the user profile was last updated.",
           "format": "date-time"
+        },
+        "initialCashBalance": {
+          "type": "number",
+          "description": "The user's initial cash balance to start cashflow calculations."
         }
       },
       "required": [

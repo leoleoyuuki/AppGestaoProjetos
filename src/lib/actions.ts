@@ -27,6 +27,7 @@ export function createUserProfile(
     id: userId,
     email: email || '',
     name: name,
+    initialCashBalance: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -61,7 +62,7 @@ export function createUserProfile(
 export function updateUserProfile(
   firestore: Firestore,
   userId: string,
-  profileData: { name: string }
+  profileData: Partial<{ name: string; initialCashBalance: number }>
 ) {
   const userDocRef = doc(firestore, `users/${userId}`);
   const data = {

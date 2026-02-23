@@ -4,15 +4,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter, DollarSign, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, collection } from 'firebase/firestore';
-import type { CostItem, RevenueItem, Project, Transaction, CostCategory } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collectionGroup, query, collection, doc } from 'firebase/firestore';
+import type { CostItem, RevenueItem, Project, Transaction, CostCategory, UserProfile } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
 
 export default function CashflowTab() {
   const { user } = useUser();
@@ -41,6 +42,12 @@ export default function CashflowTab() {
     return query(collection(firestore, `users/${user.uid}/costCategories`));
   }, [firestore, user]);
   const { data: costCategories } = useCollection<CostCategory>(costCategoriesQuery);
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile, isLoading: userProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const transactions: Transaction[] = useMemo(() => {
     if (!costs || !revenues || !projects || !user) return [];
@@ -72,10 +79,39 @@ export default function CashflowTab() {
     return [...revenueTransactions, ...costTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [costs, revenues, projects, user]);
   
-  const isLoading = costsLoading || revenuesLoading || projectsLoading;
+  const isLoading = costsLoading || revenuesLoading || projectsLoading || userProfileLoading;
+
+  const { initialBalance, totalRevenue, totalCost, currentBalance } = useMemo(() => {
+    if (isLoading || !userProfile || !costs || !revenues || !user) {
+        return { initialBalance: 0, totalRevenue: 0, totalCost: 0, currentBalance: 0 };
+    }
+    
+    const initialBalanceValue = userProfile.initialCashBalance || 0;
+
+    const userRevenues = revenues.filter(r => r.userId === user.uid);
+    const totalRevenueValue = userRevenues.reduce((acc, r) => acc + r.receivedAmount, 0);
+
+    const totalCostValue = costs.reduce((acc, c) => acc + c.actualAmount, 0);
+
+    const currentBalanceValue = initialBalanceValue + totalRevenueValue - totalCostValue;
+
+    return { 
+        initialBalance: initialBalanceValue, 
+        totalRevenue: totalRevenueValue, 
+        totalCost: totalCostValue, 
+        currentBalance: currentBalanceValue 
+    };
+  }, [isLoading, userProfile, costs, revenues, user]);
+
 
   return (
     <div className="space-y-6">
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <KeyMetricCard title="Saldo Inicial" value={formatCurrency(initialBalance)} Icon={Landmark} isLoading={isLoading} />
+            <KeyMetricCard title="Total de Entradas" value={formatCurrency(totalRevenue)} Icon={TrendingUp} isLoading={isLoading} />
+            <KeyMetricCard title="Total de Saídas" value={formatCurrency(totalCost)} Icon={TrendingDown} isLoading={isLoading} isNegative />
+            <KeyMetricCard title="Saldo Atual" value={formatCurrency(currentBalance)} Icon={DollarSign} isLoading={isLoading} isNegative={currentBalance < 0} />
+        </div>
       <Card>
         <CardHeader>
           <CardTitle>Fluxo de Caixa</CardTitle>

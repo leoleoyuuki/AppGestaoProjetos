@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -20,16 +21,19 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { updateUserProfile } from '@/lib/actions';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(2, {
     message: 'O nome deve ter pelo menos 2 caracteres.',
   }),
+  initialCashBalance: z.coerce.number().optional(),
 });
 
 export default function SettingsForm() {
@@ -39,18 +43,30 @@ export default function SettingsForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      initialCashBalance: 0,
     },
   });
 
   useEffect(() => {
-    if (user?.displayName) {
-      form.reset({ name: user.displayName });
+    if (userProfile) {
+      form.reset({ 
+        name: userProfile.name, 
+        initialCashBalance: userProfile.initialCashBalance || 0 
+      });
+    } else if (user?.displayName) {
+      form.reset({ name: user.displayName, initialCashBalance: 0 });
     }
-  }, [user, form]);
+  }, [user, userProfile, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -66,12 +82,17 @@ export default function SettingsForm() {
 
     try {
       // Update Firebase Auth display name
-      await updateProfile(user, { displayName: values.name });
-
+      if(user.displayName !== values.name) {
+        await updateProfile(user, { displayName: values.name });
+      }
+      
       // Update Firestore user profile
-      updateUserProfile(firestore, user.uid, { name: values.name });
+      updateUserProfile(firestore, user.uid, { 
+        name: values.name,
+        initialCashBalance: values.initialCashBalance || 0,
+      });
 
-      toast({ title: 'Sucesso!', description: 'Seu nome foi atualizado.' });
+      toast({ title: 'Sucesso!', description: 'Seu perfil foi atualizado.' });
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -88,7 +109,7 @@ export default function SettingsForm() {
     <Card>
       <CardHeader>
         <CardTitle>Seu Perfil</CardTitle>
-        <CardDescription>Atualize seu nome de exibição.</CardDescription>
+        <CardDescription>Atualize seu nome de exibição e saldo inicial.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -102,6 +123,22 @@ export default function SettingsForm() {
                   <FormControl>
                     <Input placeholder="Seu nome" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="initialCashBalance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Saldo Inicial (R$)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0.00" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Este é o ponto de partida para o cálculo do seu fluxo de caixa.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

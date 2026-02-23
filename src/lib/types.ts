@@ -12,6 +12,7 @@ export interface UserProfile extends DocumentData {
     name: string;
     createdAt: Timestamp | string;
     updatedAt: Timestamp | string;
+    initialCashBalance?: number;
 }
 
 export interface Project extends DocumentData {
