@@ -53,7 +53,7 @@ service cloud.firestore {
 
       // --- Cost Categories Subcollection ---
       match /costCategories/{costCategoryId} {
-        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow read, list, update, delete: if request.auth != null && request.auth.uid == userId;
         allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
       }
     }
