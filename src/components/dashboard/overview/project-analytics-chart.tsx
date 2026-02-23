@@ -1,65 +1,103 @@
-"use client"
+"use client";
 
-import { Bar, BarChart, XAxis, YAxis, Tooltip } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
-import { useState, useEffect } from "react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
+import { format, startOfMonth, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useMemo } from "react";
+import type { CostItem, RevenueItem } from "@/lib/types";
+import { formatCurrency } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const generateData = () => [
-  { name: "S", total: Math.floor(Math.random() * 50) + 10 },
-  { name: "M", total: Math.floor(Math.random() * 50) + 10 },
-  { name: "T", total: Math.floor(Math.random() * 80) + 20 },
-  { name: "W", total: Math.floor(Math.random() * 50) + 10 },
-  { name: "T", total: Math.floor(Math.random() * 50) + 10 },
-  { name: "F", total: Math.floor(Math.random() * 50) + 10 },
-  { name: "S", total: Math.floor(Math.random() * 50) + 10 },
-];
+interface MonthlyIOChartProps {
+    costs: CostItem[] | null;
+    revenues: RevenueItem[] | null;
+    isLoading: boolean;
+    userId: string | undefined;
+}
 
 const chartConfig = {
-  total: {
-    label: "Total",
+  entradas: {
+    label: "Entradas",
+    color: "hsl(var(--chart-2))",
+  },
+  saidas: {
+    label: "Saídas",
     color: "hsl(var(--chart-1))",
   },
-};
+} satisfies ChartConfig;
 
-export default function ProjectAnalyticsChart() {
-  const [data, setData] = useState<any[]>([]);
+export default function MonthlyIOChart({ costs, revenues, isLoading, userId }: MonthlyIOChartProps) {
+  const chartData = useMemo(() => {
+    if (!costs || !revenues || !userId) return [];
+    
+    const userCosts = costs.filter(c => c.userId === userId);
+    const userRevenues = revenues.filter(r => r.userId === userId);
 
-  // Generate data on client-side only to avoid hydration mismatch
-  useEffect(() => {
-    setData(generateData());
-  }, []);
+    const data = Array.from({ length: 6 }).map((_, i) => {
+        const date = subMonths(new Date(), i);
+        const monthStart = startOfMonth(date);
+        
+        const monthName = format(monthStart, 'MMM', { locale: ptBR });
+
+        const monthlyRevenues = userRevenues.filter(r => format(new Date(r.transactionDate), 'yyyy-MM') === format(monthStart, 'yyyy-MM'));
+        const monthlyCosts = userCosts.filter(c => format(new Date(c.transactionDate), 'yyyy-MM') === format(monthStart, 'yyyy-MM'));
+
+        const totalRevenue = monthlyRevenues.reduce((acc, r) => acc + (r.receivedAmount || 0), 0);
+        const totalCost = monthlyCosts.reduce((acc, c) => acc + (c.actualAmount || 0), 0);
+
+        return {
+            month: monthName,
+            entradas: totalRevenue,
+            saidas: totalCost,
+        }
+    }).reverse(); // reverse to show oldest month first
+
+    return data;
+
+  }, [costs, revenues, userId]);
+
+  if(isLoading) {
+    return <Skeleton className="w-full h-[300px]" />
+  }
 
   return (
-    <Card className="rounded-2xl">
-      <CardHeader>
-        <CardTitle>Project Analytics</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[240px] w-full">
-          <BarChart data={data} barGap={10} barSize={20} accessibilityLayer>
+    <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-[350px]">
+        <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+            <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="name"
-              stroke="#888888"
-              fontSize={12}
+              dataKey="month"
               tickLine={false}
+              tickMargin={10}
               axisLine={false}
+              className="capitalize"
             />
             <YAxis
-              stroke="#888888"
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-              hide
+                tickLine={false}
+                axisLine={false}
+                tickMargin={10}
+                tickFormatter={(value) => formatCurrency(Number(value))}
             />
-            <Tooltip 
-              content={<ChartTooltipContent />} 
-              cursor={{fill: 'hsl(var(--accent))', radius: '0.5rem'}} 
+            <ChartTooltipContent
+                formatter={(value, name, item) => (
+                    <div className="flex items-center">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full mr-2"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <div className="flex-1 text-muted-foreground capitalize">{name}</div>
+                        <div className="font-mono font-medium tabular-nums text-foreground">{formatCurrency(Number(value))}</div>
+                    </div>
+                )}
             />
-            <Bar dataKey="total" radius={[8, 8, 8, 8]} fill="var(--color-total)" />
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+            <Legend />
+            <Bar dataKey="entradas" fill="var(--color-entradas)" radius={4} />
+            <Bar dataKey="saidas" fill="var(--color-saidas)" radius={4} />
+        </BarChart>
+    </ChartContainer>
   )
 }

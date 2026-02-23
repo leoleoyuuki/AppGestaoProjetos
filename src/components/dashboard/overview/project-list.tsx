@@ -4,18 +4,10 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, CheckCircle, Workflow, CircleHelp, Loader } from 'lucide-react';
+import { MoreHorizontal, Plus, Briefcase } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-
-const iconMap = {
-  "Develop API Endpoints": <Workflow className="text-blue-500" />,
-  "Onboarding Flow": <CheckCircle className="text-green-500" />,
-  "Build Dashboard": <Workflow className="text-blue-500" />,
-  "Optimize Page Load": <CircleHelp className="text-yellow-500" />,
-  "Cross-Browser Testing": <Loader className="text-purple-500" />,
-}
 
 export default function ProjectList() {
     const { user } = useUser();
@@ -27,16 +19,11 @@ export default function ProjectList() {
     }, [firestore, user]);
     const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
-    const getIcon = (projectName: string) => {
-        const key = Object.keys(iconMap).find(key => projectName.includes(key.split(' ')[0]));
-        return key ? iconMap[key as keyof typeof iconMap] : <Workflow className="text-gray-500" />;
-    }
-
     return (
         <Card className="rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Project</CardTitle>
-                <Button variant="outline" size="sm"><Plus className="h-4 w-4 mr-2" />New</Button>
+                <CardTitle>Projetos</CardTitle>
+                <Button variant="outline" size="sm"><Plus className="h-4 w-4 mr-2" />Novo</Button>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
@@ -49,13 +36,13 @@ export default function ProjectList() {
                     ) : (
                        projects?.slice(0, 5).map(project => (
                             <div key={project.id} className="flex items-center gap-4">
-                                <div className="p-2 bg-muted rounded-full">
-                                    {getIcon(project.name)}
+                                <div className="p-3 bg-muted rounded-full">
+                                    <Briefcase className="h-5 w-5 text-muted-foreground" />
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-medium">{project.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        Due date: {format(new Date(project.endDate), 'MMM dd, yyyy')}
+                                        Prazo: {format(new Date(project.endDate), 'dd/MM/yyyy')}
                                     </p>
                                 </div>
                                 <Button variant="ghost" size="icon">
@@ -63,6 +50,9 @@ export default function ProjectList() {
                                 </Button>
                             </div>
                         ))
+                    )}
+                     {!projectsLoading && projects?.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">Nenhum projeto encontrado.</p>
                     )}
                 </div>
             </CardContent>

@@ -91,3 +91,10 @@ export type Transaction = {
   project: string;
   status: 'Pendente' | 'Recebido' | 'Pago';
 };
+
+// For charts
+export interface MonthlyIOData {
+    month: string;
+    entradas: number;
+    saidas: number;
+}
