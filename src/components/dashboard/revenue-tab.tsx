@@ -87,7 +87,7 @@ export default function RevenueTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoading && (
                 <TableRow>
                   <TableCell colSpan={9}>
                      <div className="space-y-2">
@@ -96,7 +96,8 @@ export default function RevenueTab() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : userRevenues && userRevenues.length > 0 ? (
+              )}
+              {!isLoading && userRevenues && userRevenues.length > 0 && (
                 userRevenues.map(revenue => {
                   const project = getProjectForRevenue(revenue.projectId);
                   const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
@@ -130,7 +131,8 @@ export default function RevenueTab() {
                     </TableRow>
                   );
                 })
-              ) : (
+              )}
+              {!isLoading && (!userRevenues || userRevenues.length === 0) && (
                  <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
                 </TableRow>
