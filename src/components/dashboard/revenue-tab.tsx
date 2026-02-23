@@ -87,7 +87,7 @@ export default function RevenueTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && (
+              {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={9}>
                      <div className="space-y-2">
@@ -96,41 +96,41 @@ export default function RevenueTab() {
                     </div>
                   </TableCell>
                 </TableRow>
-              )}
-              {!isLoading && userRevenues?.map(revenue => {
-                const project = getProjectForRevenue(revenue.projectId);
-                const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
-                return (
-                  <TableRow key={revenue.id}>
-                    <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
-                    <TableCell>{project?.client || 'N/A'}</TableCell>
-                    <TableCell>{revenue.name}</TableCell>
-                    <TableCell>{new Date(revenue.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
-                    <TableCell>
-                      <Badge variant={status === 'Recebido' ? 'secondary' : 'default'}>{status}</Badge>
-                    </TableCell>
-                    <TableCell>N/A</TableCell> {/* Forma de Pagamento */}
-                    <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
-                    <TableCell className="text-right">
-                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {!isLoading && (!userRevenues || userRevenues.length === 0) && (
+              ) : userRevenues && userRevenues.length > 0 ? (
+                userRevenues.map(revenue => {
+                  const project = getProjectForRevenue(revenue.projectId);
+                  const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
+                  return (
+                    <TableRow key={revenue.id}>
+                      <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
+                      <TableCell>{project?.client || 'N/A'}</TableCell>
+                      <TableCell>{revenue.name}</TableCell>
+                      <TableCell>{new Date(revenue.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
+                      <TableCell>
+                        <Badge variant={status === 'Recebido' ? 'secondary' : 'default'}>{status}</Badge>
+                      </TableCell>
+                      <TableCell>N/A</TableCell> {/* Forma de Pagamento */}
+                      <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
+                      <TableCell className="text-right">
+                         <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
                  <TableRow>
                     <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
                 </TableRow>
@@ -139,7 +139,7 @@ export default function RevenueTab() {
           </Table>
         </CardContent>
       </Card>
-      {(isRevenueItemDialogOpen || editingRevenueItem !== undefined) && projects && (
+      {isRevenueItemDialogOpen && projects && (
          <RevenueItemDialog 
             isOpen={isRevenueItemDialogOpen}
             onOpenChange={setRevenueItemDialogOpen}
