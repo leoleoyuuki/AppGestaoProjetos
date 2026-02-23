@@ -36,7 +36,6 @@ export function ProjectDialog({ project, isOpen, onOpenChange }: ProjectDialogPr
     const projectData = {
       ...values,
       startDate: values.startDate.toISOString().split('T')[0], // format to 'YYYY-MM-DD'
-      endDate: values.endDate.toISOString().split('T')[0],
       userId: user.uid
     };
 

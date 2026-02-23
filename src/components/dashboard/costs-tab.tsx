@@ -72,7 +72,7 @@ export default function CostsTab() {
       predictedCost,
       actualCost,
       deviationThresholdPercentage: 10,
-      projectDescription: `Análise de custos para o projeto ${project.name}, com início em ${project.startDate} e fim previsto para ${project.endDate}.`,
+      projectDescription: `Análise de custos para o projeto ${project.name}, com início em ${project.startDate}.`,
       costCategories: projectCosts.map(cost => ({
         category: cost.category,
         predicted: cost.plannedAmount,
