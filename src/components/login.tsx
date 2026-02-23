@@ -45,7 +45,7 @@ export default function Login() {
         }
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
-        createUserProfile(
+        await createUserProfile(
           firestore,
           userCredential.user.uid,
           userCredential.user.email,

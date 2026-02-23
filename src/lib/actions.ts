@@ -32,7 +32,9 @@ export function createUserProfile(
     updatedAt: serverTimestamp(),
   };
 
-  setDoc(userDocRef, data).catch((error) => {
+  const setPromise = setDoc(userDocRef, data);
+  
+  setPromise.catch((error) => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -57,6 +59,8 @@ export function createUserProfile(
           console.warn(`Could not seed category '${categoryName}':`, error);
       });
   }
+  
+  return setPromise;
 }
 
 export function updateUserProfile(

@@ -25,9 +25,10 @@ import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/fireb
 import { updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { updateUserProfile } from '@/lib/actions';
+import { updateUserProfile, createUserProfile } from '@/lib/actions';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -47,7 +48,7 @@ export default function SettingsForm() {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,16 +82,28 @@ export default function SettingsForm() {
     setIsSubmitting(true);
 
     try {
-      // Update Firebase Auth display name
+      // Update Firebase Auth display name first
       if(user.displayName !== values.name) {
         await updateProfile(user, { displayName: values.name });
       }
-      
-      // Update Firestore user profile
-      updateUserProfile(firestore, user.uid, { 
-        name: values.name,
-        initialCashBalance: values.initialCashBalance || 0,
-      });
+
+      // Check if the Firestore document exists
+      if (userProfile) {
+        // If it exists, update it
+        updateUserProfile(firestore, user.uid, { 
+          name: values.name,
+          initialCashBalance: values.initialCashBalance || 0,
+        });
+      } else {
+        // If it does not exist, create it
+        await createUserProfile(firestore, user.uid, user.email, values.name);
+        // Then update it with the initial cash balance if provided
+        if (values.initialCashBalance) {
+            updateUserProfile(firestore, user.uid, { 
+                initialCashBalance: values.initialCashBalance
+            });
+        }
+      }
 
       toast({ title: 'Sucesso!', description: 'Seu perfil foi atualizado.' });
     } catch (error: any) {
@@ -103,6 +116,28 @@ export default function SettingsForm() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (isProfileLoading) {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-4 w-2/3" />
+            </CardHeader>
+            <CardContent className="space-y-8">
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                 <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <Skeleton className="h-10 w-32" />
+            </CardContent>
+        </Card>
+    )
   }
 
   return (
