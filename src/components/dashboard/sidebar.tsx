@@ -81,17 +81,17 @@ export default function AppSidebar() {
                 <SidebarMenu>
                 {navItems.map((item) => (
                     <SidebarMenuItem key={item.id}>
-                      <Link href={item.href} passHref legacyBehavior>
-                        <SidebarMenuButton
-                            as="a"
-                            isActive={isActive(item.href)}
-                            tooltip={item.label}
-                            className={cn("justify-start", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
-                        >
+                      <SidebarMenuButton
+                          asChild
+                          isActive={isActive(item.href)}
+                          tooltip={item.label}
+                          className={cn("justify-start", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
+                      >
+                        <Link href={item.href}>
                             <item.icon className={cn(isActive(item.href) && "text-primary")} />
                             <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </Link>
+                        </Link>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
                 ))}
                 </SidebarMenu>
@@ -112,17 +112,17 @@ export default function AppSidebar() {
                                 <span>{item.label}</span>
                             </SidebarMenuButton>
                         ) : (
-                           <Link href={item.href} passHref legacyBehavior>
-                             <SidebarMenuButton
-                                as="a"
-                                isActive={isActive(item.href)}
-                                tooltip={item.label}
-                                className={cn("justify-start text-muted-foreground hover:text-foreground", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
-                              >
-                                  <item.icon className={cn(isActive(item.href) && "text-primary")} />
-                                  <span>{item.label}</span>
-                              </SidebarMenuButton>
-                           </Link>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive(item.href)}
+                            tooltip={item.label}
+                            className={cn("justify-start text-muted-foreground hover:text-foreground", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
+                          >
+                           <Link href={item.href}>
+                              <item.icon className={cn(isActive(item.href) && "text-primary")} />
+                              <span>{item.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
                         )}
                     </SidebarMenuItem>
                 ))}
