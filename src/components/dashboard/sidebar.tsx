@@ -57,7 +57,7 @@ export default function AppSidebar() {
     try {
       await signOut(auth);
       toast({ title: 'Sucesso', description: 'Sessão encerrada com sucesso.' });
-    } catch (error: any)
+    } catch (error: any) {
       toast({ variant: 'destructive', title: 'Erro', description: error.message });
     }
   };
