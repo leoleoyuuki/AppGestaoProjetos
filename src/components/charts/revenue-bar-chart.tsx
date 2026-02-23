@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/chart"
 import { formatCurrency } from "@/lib/utils";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import type { Project } from '@/lib/types';
+import { collection, query, collectionGroup } from 'firebase/firestore';
+import type { Project, RevenueItem } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from "../ui/skeleton";
 
@@ -36,17 +36,34 @@ export default function RevenueBarChart() {
   }, [firestore, user]);
   const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
+  const revenuesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collectionGroup(firestore, 'revenueItems'));
+  }, [firestore, user]);
+  const { data: revenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenuesQuery);
+
   const chartData = useMemo(() => {
-    if (!projects) return [];
+    if (!projects || !revenues || !user) return [];
+
+    const actualsByProject = revenues
+      .filter(r => r.userId === user.uid)
+      .reduce((acc, revenue) => {
+        if (!acc[revenue.projectId]) {
+          acc[revenue.projectId] = 0;
+        }
+        acc[revenue.projectId] += revenue.receivedAmount;
+        return acc;
+      }, {} as { [key: string]: number });
+
     return projects.map(project => ({
       project: project.name.split(' ')[0], // Shorten name for chart
       predicted: project.plannedTotalRevenue,
-      actual: project.actualTotalRevenue,
+      actual: actualsByProject[project.id] || 0,
     }));
-  }, [projects]);
+  }, [projects, revenues, user]);
 
 
-  if (projectsLoading) {
+  if (projectsLoading || revenuesLoading) {
     return <Skeleton className="h-[350px] w-full" />
   }
 
