@@ -10,7 +10,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
-import { ProjectDialog } from './project-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteProject } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +29,6 @@ export default function ProjectsTable() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
   const [deletingProject, setDeletingProject] = useState<Project | undefined>(undefined);
 
   const projectsQuery = useMemoFirebase(() => {
@@ -111,7 +109,6 @@ export default function ProjectsTable() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setEditingProject(proj)}>Editar</DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingProject(proj)}>Excluir</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -120,13 +117,6 @@ export default function ProjectsTable() {
           ))}
         </TableBody>
       </Table>
-      {editingProject && (
-        <ProjectDialog
-          isOpen={!!editingProject}
-          onOpenChange={(isOpen) => !isOpen && setEditingProject(undefined)}
-          project={editingProject}
-        />
-      )}
       {deletingProject && (
         <DeleteAlertDialog
           isOpen={!!deletingProject}

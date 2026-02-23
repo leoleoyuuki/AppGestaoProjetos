@@ -12,9 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
 import { formatCurrency } from '@/lib/utils';
 import type { Project, CostItem, RevenueItem } from '@/lib/types';
-import { PlusCircle, DollarSign, Wallet, Activity, Percent, TrendingUp, TrendingDown } from 'lucide-react';
+import { PlusCircle, DollarSign, Wallet, Activity, Percent, TrendingUp, TrendingDown, Edit } from 'lucide-react';
 import { CostItemDialog } from '@/components/dashboard/cost-item-dialog';
 import { RevenueItemDialog } from '@/components/dashboard/revenue-item-dialog';
+import { ProjectDialog } from '@/components/dashboard/project-dialog';
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -24,6 +25,7 @@ export default function ProjectDetailPage() {
   
   const [isCostDialogOpen, setCostDialogOpen] = useState(false);
   const [isRevenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
 
   const projectRef = useMemoFirebase(() => {
     if (!user || !firestore || !projectId) return null;
@@ -72,9 +74,15 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">{project.name}</h1>
-        <p className="text-muted-foreground">Cliente: {project.client}</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold">{project.name}</h1>
+          <p className="text-muted-foreground">Cliente: {project.client}</p>
+        </div>
+        <Button size="sm" onClick={() => setProjectDialogOpen(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Editar Projeto
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -166,6 +174,14 @@ export default function ProjectDetailPage() {
             projects={[project]}
             revenueItem={undefined}
          />
+      )}
+      
+      {isProjectDialogOpen && (
+        <ProjectDialog 
+            isOpen={isProjectDialogOpen}
+            onOpenChange={setProjectDialogOpen}
+            project={project}
+        />
       )}
 
     </div>
