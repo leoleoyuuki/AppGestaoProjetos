@@ -21,13 +21,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Project, ProjectStatus } from '@/lib/types';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const projectStatus: ProjectStatus[] = ['Pendente', 'Em andamento', 'Instalado', 'Concluído', 'Cancelado'];
 
@@ -63,6 +67,8 @@ const parseDateString = (dateString: string | Date): Date => {
 };
 
 export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: ProjectFormProps) {
+  const [isCalendarOpen, setCalendarOpen] = useState(false);
+
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: project
@@ -127,7 +133,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
             <FormItem>
               <FormLabel>Descrição</FormLabel>
               <FormControl>
-                <Textarea placeholder="Descreva o projeto..." {...field} />
+                <Textarea placeholder="Descreva o projeto..." {...field} value={field.value || ''}/>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -140,8 +146,8 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Data da Venda</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
+                 <Dialog open={isCalendarOpen} onOpenChange={setCalendarOpen}>
+                  <DialogTrigger asChild>
                     <FormControl>
                       <Button
                         variant={'outline'}
@@ -154,16 +160,19 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  </DialogTrigger>
+                  <DialogContent className="w-auto p-0">
                     <Calendar
                       mode="single"
                       selected={field.value}
-                      onSelect={field.onChange}
+                      onSelect={(date) => {
+                        field.onChange(date);
+                        setCalendarOpen(false);
+                      }}
                       initialFocus
                     />
-                  </PopoverContent>
-                </Popover>
+                  </DialogContent>
+                </Dialog>
                 <FormMessage />
               </FormItem>
             )}

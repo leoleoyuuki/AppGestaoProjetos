@@ -23,13 +23,17 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { RevenueItem, Project } from '@/lib/types';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const revenueItemFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -61,6 +65,8 @@ const parseDateString = (dateString: string | Date): Date => {
 };
 
 export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isSubmitting }: RevenueItemFormProps) {
+  const [isCalendarOpen, setCalendarOpen] = useState(false);
+  
   const form = useForm<RevenueItemFormValues>({
     resolver: zodResolver(revenueItemFormSchema),
     defaultValues: revenueItem
@@ -159,8 +165,8 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Data de Vencimento</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
+              <Dialog open={isCalendarOpen} onOpenChange={setCalendarOpen}>
+                <DialogTrigger asChild>
                   <FormControl>
                     <Button
                       variant={'outline'}
@@ -173,11 +179,20 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                </PopoverContent>
-              </Popover>
+                </DialogTrigger>
+                <DialogContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={(date) => {
+                      if(!date) return;
+                      field.onChange(date);
+                      setCalendarOpen(false);
+                    }}
+                    initialFocus
+                  />
+                </DialogContent>
+              </Dialog>
               <FormMessage />
             </FormItem>
           )}
@@ -189,7 +204,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
             <FormItem>
               <FormLabel>Descrição (Observação)</FormLabel>
               <FormControl>
-                <Textarea placeholder="Detalhes adicionais sobre a receita..." {...field} />
+                <Textarea placeholder="Detalhes adicionais sobre a receita..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
