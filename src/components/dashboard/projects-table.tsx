@@ -14,6 +14,7 @@ import { ProjectDialog } from './project-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteProject } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
   'Pendente': 'outline',
@@ -27,6 +28,7 @@ export default function ProjectsTable() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined);
   const [deletingProject, setDeletingProject] = useState<Project | undefined>(undefined);
@@ -54,6 +56,10 @@ export default function ProjectsTable() {
     toast({ title: 'Sucesso', description: 'Projeto excluído.' });
     setDeletingProject(undefined);
   };
+  
+  const handleRowClick = (projectId: string) => {
+    router.push(`/dashboard/projects/${projectId}`);
+  };
 
   if (projectsLoading) {
     return (
@@ -71,30 +77,33 @@ export default function ProjectsTable() {
         <TableHeader>
           <TableRow>
             <TableHead>Projeto</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="text-right">Valor Total</TableHead>
-            <TableHead className="text-right hidden md:table-cell">Custo Estimado</TableHead>
-            <TableHead className="text-right hidden lg:table-cell">Margem</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Valor Total (R$)</TableHead>
+            <TableHead className="text-right">Custo Estimado (R$)</TableHead>
+            <TableHead className="text-right">Receita Realizada (R$)</TableHead>
+            <TableHead className="text-right">Custos Realizados (R$)</TableHead>
+            <TableHead className="text-right">Margem Real (R$)</TableHead>
+            <TableHead className="text-right">Margem Real (%)</TableHead>
             <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {projectData?.map(proj => (
-            <TableRow key={proj.id}>
+            <TableRow key={proj.id} onClick={() => handleRowClick(proj.id)} className="cursor-pointer">
               <TableCell>
                 <div className="font-medium">{proj.name}</div>
                 <div className="text-sm text-muted-foreground">{proj.client}</div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <Badge variant={statusVariant[proj.status]}>{proj.status}</Badge>
               </TableCell>
               <TableCell className="text-right">{formatCurrency(proj.plannedTotalRevenue)}</TableCell>
-              <TableCell className="text-right hidden md:table-cell">{formatCurrency(proj.plannedTotalCost)}</TableCell>
-              <TableCell className="text-right hidden lg:table-cell">
-                <div className="font-medium">{formatCurrency(proj.actualProfit)}</div>
-                <div className="text-xs text-muted-foreground">{proj.marginPercentage.toFixed(1)}%</div>
-              </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right">{formatCurrency(proj.plannedTotalCost)}</TableCell>
+              <TableCell className="text-right">{formatCurrency(proj.actualTotalRevenue)}</TableCell>
+              <TableCell className="text-right">{formatCurrency(proj.actualTotalCost)}</TableCell>
+              <TableCell className="text-right font-medium">{formatCurrency(proj.actualProfit)}</TableCell>
+              <TableCell className="text-right">{proj.marginPercentage.toFixed(1)}%</TableCell>
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">

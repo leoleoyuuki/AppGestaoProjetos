@@ -2,7 +2,6 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import MainLayout from '@/components/dashboard/main-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
@@ -10,18 +9,18 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
+    if (!isUserLoading) {
+      if (user) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <Skeleton className="h-full w-full" />
-      </div>
-    );
-  }
-
-  return <MainLayout />;
+  return (
+    <div className="flex h-screen w-screen items-center justify-center">
+      <Skeleton className="h-full w-full" />
+    </div>
+  );
 }

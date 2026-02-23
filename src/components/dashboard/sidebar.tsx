@@ -21,7 +21,6 @@ import {
   ArrowLeftRight,
   Briefcase,
 } from 'lucide-react';
-import type { Dispatch, SetStateAction } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -30,30 +29,28 @@ import { Button } from '../ui/button';
 import Image from 'next/image';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '@/lib/utils';
-
-interface AppSidebarProps {
-  activeView: string;
-  setActiveView: Dispatch<SetStateAction<string>>;
-}
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'projects', label: 'Projetos', icon: Briefcase },
-  { id: 'costs', label: 'Custos', icon: Wallet },
-  { id: 'revenue', label: 'Receitas', icon: TrendingUp },
-  { id: 'cashflow', label: 'Fluxo de Caixa', icon: ArrowLeftRight },
-  { id: 'reports', label: 'Relatórios', icon: BarChart3 },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { id: 'projects', label: 'Projetos', icon: Briefcase, href: '/dashboard/projects' },
+  { id: 'costs', label: 'Custos', icon: Wallet, href: '/dashboard/costs' },
+  { id: 'revenue', label: 'Receitas', icon: TrendingUp, href: '/dashboard/revenue' },
+  { id: 'cashflow', label: 'Fluxo de Caixa', icon: ArrowLeftRight, href: '/dashboard/cashflow' },
+  { id: 'reports', label: 'Relatórios', icon: BarChart3, href: '/dashboard/reports' },
 ];
 
 const generalItems = [
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'help', label: 'Help', icon: CircleHelp },
-    { id: 'logout', label: 'Logout', icon: LogOut },
+    { id: 'settings', label: 'Settings', icon: Settings, href: '#' },
+    { id: 'help', label: 'Help', icon: CircleHelp, href: '#' },
+    { id: 'logout', label: 'Logout', icon: LogOut, href: '#' },
 ]
 
-export default function AppSidebar({ activeView, setActiveView }: AppSidebarProps) {
+export default function AppSidebar() {
   const auth = useAuth();
   const { toast } = useToast();
+  const pathname = usePathname();
   const downloadAppImage = PlaceHolderImages.find((img) => img.id === 'download-app-bg');
 
   const handleSignOut = async () => {
@@ -63,6 +60,11 @@ export default function AppSidebar({ activeView, setActiveView }: AppSidebarProp
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
+  };
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard') return pathname === href;
+    return pathname.startsWith(href);
   };
 
   return (
@@ -77,15 +79,19 @@ export default function AppSidebar({ activeView, setActiveView }: AppSidebarProp
                 <SidebarMenu>
                 {navItems.map((item) => (
                     <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                        onClick={() => setActiveView(item.id)}
-                        isActive={activeView === item.id}
-                        tooltip={item.label}
-                        className={cn("justify-start", activeView === item.id && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
-                    >
-                        <item.icon className={cn(activeView === item.id && "text-primary")} />
-                        <span>{item.label}</span>
-                    </SidebarMenuButton>
+                      <Link href={item.href} passHref>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={isActive(item.href)}
+                            tooltip={item.label}
+                            className={cn("justify-start", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
+                        >
+                            <>
+                              <item.icon className={cn(isActive(item.href) && "text-primary")} />
+                              <span>{item.label}</span>
+                            </>
+                        </SidebarMenuButton>
+                      </Link>
                     </SidebarMenuItem>
                 ))}
                 </SidebarMenu>
