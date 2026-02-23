@@ -23,8 +23,9 @@ service cloud.firestore {
     // As regras de escrita são mais granulares para garantir a integridade dos dados e que os usuários
     // possam apenas modificar seus próprios dados.
 
-    // O usuário só pode escrever em seu próprio documento de perfil de usuário.
+    // O usuário pode ler e escrever em seu próprio documento de perfil de usuário.
     match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.id == userId;
       allow update: if request.auth != null && request.auth.uid == userId;
     }
