@@ -19,6 +19,7 @@ import {
   BarChart3,
   TrendingUp,
   ArrowLeftRight,
+  Briefcase,
 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -37,6 +38,7 @@ interface AppSidebarProps {
 
 const navItems = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'projects', label: 'Projetos', icon: Briefcase },
   { id: 'costs', label: 'Custos', icon: Wallet },
   { id: 'revenue', label: 'Receitas', icon: TrendingUp },
   { id: 'cashflow', label: 'Fluxo de Caixa', icon: ArrowLeftRight },

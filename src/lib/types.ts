@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { type DocumentData, type Timestamp } from 'firebase/firestore';
 
 
-export type ProjectStatus = 'Em andamento' | 'Concluído' | 'Cancelado';
+export type ProjectStatus = 'Pendente' | 'Em andamento' | 'Instalado' | 'Concluído' | 'Cancelado';
 export type PaymentMethod = 'Dinheiro' | 'Cartão de Crédito' | 'Transferência Bancária';
 export type CostCategory = 'Mão de obra' | 'Materiais' | 'Marketing' | 'Software' | 'Outros';
 
@@ -20,9 +20,8 @@ export interface Project extends DocumentData {
     id: string;
     userId: string;
     name: string;
-    client?: string;
+    client: string;
     startDate: string;
-    endDate: string;
     status: ProjectStatus;
     plannedTotalCost: number;
     plannedTotalRevenue: number;

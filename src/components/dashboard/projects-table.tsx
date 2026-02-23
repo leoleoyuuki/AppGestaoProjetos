@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import type { Project, ProjectStatus } from '@/lib/types';
 import { MoreHorizontal } from 'lucide-react';
@@ -16,8 +15,10 @@ import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteProject } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
-const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' } = {
+const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
+  'Pendente': 'outline',
   'Em andamento': 'default',
+  'Instalado': 'default',
   'Concluído': 'secondary',
   'Cancelado': 'destructive',
 };
@@ -37,22 +38,13 @@ export default function ProjectsTable() {
   const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
   const projectData = projects?.map(proj => {
-    const totalPredictedRevenue = proj.plannedTotalRevenue;
-    const totalActualRevenue = proj.actualTotalRevenue;
-
-    const totalPredictedCost = proj.plannedTotalCost;
-    const totalActualCost = proj.actualTotalCost;
-    
-    const predictedProfit = totalPredictedRevenue - totalPredictedCost;
-    const actualProfit = totalActualRevenue - totalActualCost;
-
-    const progress = totalPredictedRevenue > 0 ? (totalActualRevenue / totalPredictedRevenue) * 100 : 0;
+    const actualProfit = proj.actualTotalRevenue - proj.actualTotalCost;
+    const marginPercentage = proj.actualTotalRevenue > 0 ? (actualProfit / proj.actualTotalRevenue) * 100 : 0;
 
     return {
       ...proj,
-      predictedProfit,
       actualProfit,
-      progress,
+      marginPercentage,
     };
   });
 
@@ -80,9 +72,9 @@ export default function ProjectsTable() {
           <TableRow>
             <TableHead>Projeto</TableHead>
             <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden lg:table-cell">Progresso</TableHead>
-            <TableHead className="text-right">Lucro Previsto</TableHead>
-            <TableHead className="text-right hidden md:table-cell">Lucro Real</TableHead>
+            <TableHead className="text-right">Valor Total</TableHead>
+            <TableHead className="text-right hidden md:table-cell">Custo Estimado</TableHead>
+            <TableHead className="text-right hidden lg:table-cell">Margem</TableHead>
             <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
           </TableRow>
         </TableHeader>
@@ -91,19 +83,17 @@ export default function ProjectsTable() {
             <TableRow key={proj.id}>
               <TableCell>
                 <div className="font-medium">{proj.name}</div>
-                <div className="text-sm text-muted-foreground hidden sm:inline">{proj.client}</div>
+                <div className="text-sm text-muted-foreground">{proj.client}</div>
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <Badge variant={statusVariant[proj.status]}>{proj.status}</Badge>
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                <div className="flex items-center gap-2">
-                  <Progress value={proj.progress} className="h-2" />
-                  <span className="text-xs text-muted-foreground">{Math.round(proj.progress)}%</span>
-                </div>
+              <TableCell className="text-right">{formatCurrency(proj.plannedTotalRevenue)}</TableCell>
+              <TableCell className="text-right hidden md:table-cell">{formatCurrency(proj.plannedTotalCost)}</TableCell>
+              <TableCell className="text-right hidden lg:table-cell">
+                <div className="font-medium">{formatCurrency(proj.actualProfit)}</div>
+                <div className="text-xs text-muted-foreground">{proj.marginPercentage.toFixed(1)}%</div>
               </TableCell>
-              <TableCell className="text-right">{formatCurrency(proj.predictedProfit)}</TableCell>
-              <TableCell className="text-right hidden md:table-cell">{formatCurrency(proj.actualProfit)}</TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

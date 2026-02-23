@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/dashboard/sidebar';
 import Header from '@/components/dashboard/header';
 import OverviewTab from '@/components/dashboard/overview-tab';
+import ProjectsTab from '@/components/dashboard/projects-tab';
 import CostsTab from '@/components/dashboard/costs-tab';
 import RevenueTab from '@/components/dashboard/revenue-tab';
 import CashflowTab from '@/components/dashboard/cashflow-tab';
@@ -17,6 +18,8 @@ export default function MainLayout() {
     switch (activeView) {
       case 'overview':
         return <OverviewTab />;
+      case 'projects':
+        return <ProjectsTab />;
       case 'costs':
         return <CostsTab />;
       case 'revenue':

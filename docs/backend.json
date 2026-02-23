@@ -46,7 +46,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Project entity."
+          "description": "Unique identifier for the Project entity (e.g., P-001)."
         },
         "userId": {
           "type": "string",
@@ -58,37 +58,39 @@
         },
         "client": {
           "type": "string",
-          "description": "Name of the client for this project (optional)."
+          "description": "Name of the client for this project."
         },
         "startDate": {
           "type": "string",
-          "description": "Planned start date of the project.",
-          "format": "date"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "Planned end date of the project.",
+          "description": "Data da venda.",
           "format": "date"
         },
         "status": {
           "type": "string",
-          "description": "Current status of the project (e.g., 'em andamento', 'concluído', 'cancelado')."
-        },
-        "plannedTotalCost": {
-          "type": "number",
-          "description": "Total estimated cost for the project."
+          "description": "Current status of the project.",
+          "enum": [
+            "Pendente",
+            "Em andamento",
+            "Instalado",
+            "Concluído",
+            "Cancelado"
+          ]
         },
         "plannedTotalRevenue": {
           "type": "number",
-          "description": "Total estimated revenue for the project."
+          "description": "Valor total (R$): Total estimated revenue for the project."
         },
-        "actualTotalCost": {
+        "plannedTotalCost": {
           "type": "number",
-          "description": "Calculated total actual cost incurred for the project, dynamically updated from associated CostItems."
+          "description": "Custo estimado (R$): Total estimated cost for the project."
         },
         "actualTotalRevenue": {
           "type": "number",
-          "description": "Calculated total actual revenue received for the project, dynamically updated from associated RevenueItems."
+          "description": "Receita realizada (R$): Calculated total actual revenue received for the project, dynamically updated from associated RevenueItems."
+        },
+        "actualTotalCost": {
+          "type": "number",
+          "description": "Custos diretos realizados (R$): Calculated total actual cost incurred for the project, dynamically updated from associated CostItems."
         },
         "description": {
           "type": "string",
@@ -109,8 +111,8 @@
         "id",
         "userId",
         "name",
+        "client",
         "startDate",
-        "endDate",
         "status",
         "plannedTotalCost",
         "plannedTotalRevenue",

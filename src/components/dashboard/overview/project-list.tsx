@@ -4,7 +4,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Briefcase } from 'lucide-react';
+import { MoreHorizontal, Briefcase } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -22,8 +22,8 @@ export default function ProjectList() {
     return (
         <Card className="rounded-2xl">
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Projetos</CardTitle>
-                <Button variant="outline" size="sm"><Plus className="h-4 w-4 mr-2" />Novo</Button>
+                <CardTitle>Projetos Recentes</CardTitle>
+                 <Button variant="outline" size="sm">Ver todos</Button>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
@@ -42,7 +42,7 @@ export default function ProjectList() {
                                 <div className="flex-1">
                                     <p className="font-medium">{project.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        Prazo: {format(new Date(project.endDate), 'dd/MM/yyyy')}
+                                        Cliente: {project.client}
                                     </p>
                                 </div>
                                 <Button variant="ghost" size="icon">

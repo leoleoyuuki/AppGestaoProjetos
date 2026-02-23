@@ -28,24 +28,22 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { Project, ProjectStatus } from '@/lib/types';
 
-const projectStatus: ProjectStatus[] = ['Em andamento', 'Concluído', 'Cancelado'];
+const projectStatus: ProjectStatus[] = ['Pendente', 'Em andamento', 'Instalado', 'Concluído', 'Cancelado'];
 
 const projectFormSchema = z.object({
   name: z.string().min(2, {
     message: 'O nome do projeto deve ter pelo menos 2 caracteres.',
   }),
-  client: z.string().optional(),
+  client: z.string().min(1, 'O cliente é obrigatório.'),
   description: z.string().optional(),
   startDate: z.date({
-    required_error: 'A data de início é obrigatória.',
-  }),
-  endDate: z.date({
-    required_error: 'A data de término é obrigatória.',
+    required_error: 'A data da venda é obrigatória.',
   }),
   status: z.enum(projectStatus),
+  plannedTotalRevenue: z.coerce.number().min(0, 'O valor deve ser um número positivo.'),
   plannedTotalCost: z.coerce.number().min(0, 'O custo deve ser um número positivo.'),
-  plannedTotalRevenue: z.coerce.number().min(0, 'A receita deve ser um número positivo.'),
 });
+
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>;
 
@@ -58,9 +56,7 @@ interface ProjectFormProps {
 
 const parseDateString = (dateString: string | Date): Date => {
   if (dateString instanceof Date) return dateString;
-  // Handle Firestore Timestamps that might be converted to strings
   if (!dateString.includes('-')) return new Date(dateString); 
-  // Handle 'YYYY-MM-DD' string, parsing in UTC to avoid timezone shifts
   const [year, month, day] = dateString.split('-').map(Number);
   return new Date(Date.UTC(year, month - 1, day));
 };
@@ -70,17 +66,15 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
     ? {
         ...project,
         startDate: parseDateString(project.startDate),
-        endDate: parseDateString(project.endDate),
       }
     : {
         name: '',
         client: '',
         description: '',
-        status: 'Em andamento' as ProjectStatus,
+        status: 'Pendente' as ProjectStatus,
         plannedTotalCost: 0,
         plannedTotalRevenue: 0,
         startDate: new Date(),
-        endDate: new Date(),
       };
 
   const form = useForm<ProjectFormValues>({
@@ -136,7 +130,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
             name="startDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data de Início</FormLabel>
+                <FormLabel>Data da Venda</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -165,73 +159,38 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
               </FormItem>
             )}
           />
-          <FormField
+           <FormField
             control={form.control}
-            name="endDate"
+            name="status"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data de Término</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status do projeto" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {projectStatus.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status do projeto" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {projectStatus.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="plannedTotalCost"
+            name="plannedTotalRevenue"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Custo Total Previsto</FormLabel>
+                <FormLabel>Valor Total (R$)</FormLabel>
                 <FormControl>
                   <Input type="number" placeholder="0.00" {...field} />
                 </FormControl>
@@ -239,12 +198,12 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
               </FormItem>
             )}
           />
-          <FormField
+           <FormField
             control={form.control}
-            name="plannedTotalRevenue"
+            name="plannedTotalCost"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Receita Total Prevista</FormLabel>
+                <FormLabel>Custo Estimado (R$)</FormLabel>
                 <FormControl>
                   <Input type="number" placeholder="0.00" {...field} />
                 </FormControl>
