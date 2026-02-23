@@ -16,10 +16,14 @@ service cloud.firestore {
     // All user-specific data is nested under their UID.
     match /users/{userId} {
       // --- User Profile Document ---
-      // Users can read and update their own profile.
-      // Creation requires the document ID to match the user's UID.
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      // Creation requires the document ID to match the user's UID and the `id` field to be set correctly.
       allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.id == userId;
+      
+      // Users can read and delete their own profile.
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+
+      // Users can update their own profile, but cannot change the `id` field.
+      allow update: if request.auth != null && request.auth.uid == userId && request.resource.data.id == resource.data.id;
 
       // --- Projects Subcollection ---
       match /projects/{projectId} {
