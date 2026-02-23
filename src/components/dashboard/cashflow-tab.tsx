@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, collection } from 'firebase/firestore';
-import type { CostItem, RevenueItem, Project, Transaction } from '@/lib/types';
+import type { CostItem, RevenueItem, Project, Transaction, CostCategory } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -35,6 +35,12 @@ export default function CashflowTab() {
     return query(collection(firestore, `users/${user.uid}/projects`));
   }, [firestore, user]);
   const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
+
+  const costCategoriesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/costCategories`));
+  }, [firestore, user]);
+  const { data: costCategories } = useCollection<CostCategory>(costCategoriesQuery);
 
   const transactions: Transaction[] = useMemo(() => {
     if (!costs || !revenues || !projects || !user) return [];
@@ -95,8 +101,9 @@ export default function CashflowTab() {
               <SelectContent>
                 <SelectItem value="all">Todas as Categorias</SelectItem>
                 <SelectItem value="revenue">Receita</SelectItem>
-                <SelectItem value="labor">Mão de obra</SelectItem>
-                <SelectItem value="materials">Materiais</SelectItem>
+                {costCategories?.map(cat => (
+                   <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select>

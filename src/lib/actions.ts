@@ -41,6 +41,21 @@ export function createUserProfile(
       })
     );
   });
+
+  // Seed default cost categories for the new user
+  const defaultCategories = ['Mão de obra', 'Materiais', 'Marketing', 'Software', 'Outros'];
+  const categoriesColRef = collection(firestore, `users/${userId}/costCategories`);
+  for (const categoryName of defaultCategories) {
+      const categoryData = {
+          name: categoryName,
+          userId: userId,
+          createdAt: serverTimestamp(),
+      };
+      // We don't block or show detailed errors for this, as it's a background setup task.
+      addDoc(categoriesColRef, categoryData).catch(error => {
+          console.warn(`Could not seed category '${categoryName}':`, error);
+      });
+  }
 }
 
 export function updateUserProfile(
@@ -140,6 +155,50 @@ export function deleteProject(
     // A cloud function would be needed for cascading deletes.
   });
 }
+
+// --- CostCategory Actions ---
+
+export function addCostCategory(
+  firestore: Firestore,
+  userId: string,
+  categoryName: string
+) {
+  const categoriesColRef = collection(firestore, `users/${userId}/costCategories`);
+  const data = {
+    name: categoryName,
+    userId: userId,
+    createdAt: serverTimestamp(),
+  };
+
+  addDoc(categoriesColRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: categoriesColRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function deleteCostCategory(
+  firestore: Firestore,
+  userId: string,
+  categoryId: string
+) {
+  const categoryDocRef = doc(firestore, `users/${userId}/costCategories`, categoryId);
+  deleteDoc(categoryDocRef).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: categoryDocRef.path,
+        operation: 'delete',
+      })
+    );
+  });
+}
+
 
 // --- CostItem Actions ---
 

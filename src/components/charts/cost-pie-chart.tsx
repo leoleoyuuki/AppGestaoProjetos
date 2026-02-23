@@ -7,6 +7,7 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
+  type ChartConfig,
 } from "@/components/ui/chart"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
@@ -14,33 +15,6 @@ import type { CostItem } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from "../ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-
-
-const chartConfig = {
-  value: {
-    label: "Valor",
-  },
-  'Mão de obra': {
-    label: "Mão de obra",
-    color: "hsl(var(--chart-1))",
-  },
-  'Materiais': {
-    label: "Materiais",
-    color: "hsl(var(--chart-2))",
-  },
-  'Marketing': {
-    label: "Marketing",
-    color: "hsl(var(--chart-3))",
-  },
-  'Software': {
-    label: "Software",
-    color: "hsl(var(--chart-4))",
-  },
-  'Outros': {
-    label: "Outros",
-    color: "hsl(var(--chart-5))",
-  },
-}
 
 export default function CostPieChart() {
   const { user } = useUser();
@@ -52,9 +26,9 @@ export default function CostPieChart() {
   }, [firestore, user]);
   const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
   
-  const chartData = useMemo(() => {
-    if(!costs) return [];
-    
+  const { chartData, chartConfig } = useMemo(() => {
+    if (!costs) return { chartData: [], chartConfig: {} };
+
     const costDataByCategory = costs.reduce((acc, cost) => {
         const totalCost = cost.actualAmount > 0 ? cost.actualAmount : cost.plannedAmount
         if (!acc[cost.category]) {
@@ -64,8 +38,22 @@ export default function CostPieChart() {
         return acc;
     }, {} as { [key: string]: { name: string, value: number } });
 
-    return Object.values(costDataByCategory);
-  }, [costs]);
+    const data = Object.values(costDataByCategory);
+
+    const colors = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+    const config: ChartConfig = {
+        value: { label: "Valor" },
+    };
+
+    data.forEach((entry, index) => {
+        config[entry.name] = {
+            label: entry.name,
+            color: colors[index % colors.length],
+        };
+    });
+
+    return { chartData: data, chartConfig: config };
+}, [costs]);
 
 
   if (costsLoading) {
@@ -87,7 +75,7 @@ export default function CostPieChart() {
                             className="w-2.5 h-2.5 rounded-full mr-2"
                             style={{ backgroundColor: item.color }}
                         />
-                        <div className="flex-1 text-muted-foreground capitalize">{name as string}</div>
+                        <div className="flex-1 text-muted-foreground capitalize">{item.payload?.name as string}</div>
                         <div className="font-mono font-medium tabular-nums text-foreground">{formatCurrency(Number(value))}</div>
                     </div>
                 )}
@@ -101,8 +89,8 @@ export default function CostPieChart() {
           innerRadius="60%"
           strokeWidth={5}
         >
-          {chartData.map((entry, index) => (
-             <Cell key={`cell-${index}`} fill={chartConfig[entry.name as keyof typeof chartConfig]?.color} />
+          {chartData.map((entry) => (
+             <Cell key={`cell-${entry.name}`} fill={chartConfig[entry.name as keyof typeof chartConfig]?.color} />
           ))}
         </Pie>
         <ChartLegend content={<ChartLegendContent nameKey="name" />} />

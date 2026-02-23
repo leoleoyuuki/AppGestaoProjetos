@@ -4,8 +4,6 @@ import { type DocumentData, type Timestamp } from 'firebase/firestore';
 
 export type ProjectStatus = 'Pendente' | 'Em andamento' | 'Instalado' | 'Concluído' | 'Cancelado';
 export type PaymentMethod = 'Dinheiro' | 'Cartão de Crédito' | 'Transferência Bancária';
-export type CostCategory = 'Mão de obra' | 'Materiais' | 'Marketing' | 'Software' | 'Outros';
-
 
 // From backend.json entities
 export interface UserProfile extends DocumentData {
@@ -32,12 +30,19 @@ export interface Project extends DocumentData {
     updatedAt: Timestamp | string;
 }
 
+export interface CostCategory extends DocumentData {
+    id: string;
+    userId: string;
+    name: string;
+    createdAt: Timestamp | string;
+}
+
 export interface CostItem extends DocumentData {
     id: string;
     projectId?: string;
     userId: string;
     name: string;
-    category: CostCategory;
+    category: string;
     plannedAmount: number;
     actualAmount: number;
     transactionDate: string;
@@ -86,7 +91,7 @@ export type Transaction = {
   description: string;
   amount: number;
   date: string;
-  category: CostCategory | 'Receita';
+  category: string;
   project: string;
   status: 'Pendente' | 'Recebido' | 'Pago';
 };

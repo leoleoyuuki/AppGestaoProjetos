@@ -28,14 +28,15 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import type { CostItem, CostCategory, Project } from '@/lib/types';
+import type { CostItem, Project, CostCategory } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
 
-const costCategories: CostCategory[] = ['Mão de obra', 'Materiais', 'Marketing', 'Software', 'Outros'];
 
 const costItemFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
   projectId: z.string().optional(),
-  category: z.enum(costCategories),
+  category: z.string().min(1, 'A categoria é obrigatória.'),
   plannedAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
   actualAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
   transactionDate: z.date({ required_error: 'A data é obrigatória.' }),
@@ -63,12 +64,21 @@ const parseDateString = (dateString: string | Date): Date => {
 };
 
 export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitting }: CostItemFormProps) {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, `users/${user.uid}/costCategories`));
+  }, [firestore, user]);
+  const { data: costCategories, isLoading: categoriesLoading } = useCollection<CostCategory>(categoriesQuery);
+  
   const defaultValues = costItem
     ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate) }
     : {
         name: '',
         projectId: projects.length === 1 ? projects[0].id : undefined,
-        category: 'Outros' as CostCategory,
+        category: '',
         plannedAmount: 0,
         actualAmount: 0,
         description: '',
@@ -132,16 +142,16 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoria</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={categoriesLoading}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
+                    <SelectValue placeholder={categoriesLoading ? "Carregando..." : "Selecione uma categoria"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {costCategories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
+                  {costCategories?.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

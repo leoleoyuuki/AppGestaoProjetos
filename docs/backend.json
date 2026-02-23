@@ -391,6 +391,37 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "CostCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CostCategory",
+      "type": "object",
+      "description": "Represents a user-defined cost category for tracking expenses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CostCategory entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who owns this category."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the cost category (e.g., 'Aluguel', 'Fornecedores')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the category was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -517,6 +548,26 @@
             {
               "name": "fixedCostId",
               "description": "The unique identifier for the fixed cost item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/costCategories/{costCategoryId}",
+        "definition": {
+          "entityName": "CostCategory",
+          "schema": {
+            "$ref": "#/backend/entities/CostCategory"
+          },
+          "description": "Collection for user-defined cost categories. This allows users to customize how they classify their costs.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "costCategoryId",
+              "description": "The unique identifier for the cost category."
             }
           ]
         }
