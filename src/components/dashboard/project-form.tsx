@@ -24,6 +24,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
@@ -162,6 +164,9 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                     </FormControl>
                   </DialogTrigger>
                   <DialogContent className="w-auto p-0">
+                    <DialogHeader>
+                      <DialogTitle className="sr-only">Escolha uma data</DialogTitle>
+                    </DialogHeader>
                     <Calendar
                       mode="single"
                       selected={field.value}

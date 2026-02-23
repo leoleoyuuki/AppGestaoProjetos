@@ -26,6 +26,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
@@ -181,6 +183,9 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                   </FormControl>
                 </DialogTrigger>
                 <DialogContent className="w-auto p-0">
+                  <DialogHeader>
+                    <DialogTitle className="sr-only">Escolha uma data</DialogTitle>
+                  </DialogHeader>
                   <Calendar
                     mode="single"
                     selected={field.value}
