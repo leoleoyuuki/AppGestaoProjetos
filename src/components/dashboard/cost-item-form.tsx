@@ -67,7 +67,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
     ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate) }
     : {
         name: '',
-        projectId: projects.length === 1 ? projects[0].id : '',
+        projectId: projects.length === 1 ? projects[0].id : undefined,
         category: 'Outros' as CostCategory,
         plannedAmount: 0,
         actualAmount: 0,
@@ -103,14 +103,17 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
           render={({ field }) => (
             <FormItem>
               <FormLabel>Projeto</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={(value) => field.onChange(value === '--none--' ? undefined : value)}
+                value={field.value || '--none--'}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um projeto" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Nenhum (Custo da Empresa)</SelectItem>
+                  <SelectItem value="--none--">Nenhum (Custo da Empresa)</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
