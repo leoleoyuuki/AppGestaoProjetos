@@ -38,6 +38,7 @@ import { AddCategoryDialog } from './add-category-dialog';
 
 const costItemFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
+  supplier: z.string().optional(),
   projectId: z.string().optional(),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   plannedAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
@@ -81,6 +82,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
     ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate) }
     : {
         name: '',
+        supplier: '',
         projectId: projects.length === 1 ? projects[0].id : undefined,
         category: '',
         plannedAmount: 0,
@@ -99,19 +101,34 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome do Custo</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Licença de Software" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome do Custo</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Licença de Software" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="supplier"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fornecedor (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Microsoft" {...field} value={field.value || ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
             name="projectId"
@@ -239,7 +256,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Descrição</FormLabel>
+                <FormLabel>Descrição (Observação)</FormLabel>
                 <FormControl>
                   <Textarea placeholder="Detalhes adicionais sobre o custo..." {...field} />
                 </FormControl>
@@ -269,7 +286,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Salvando...' : 'Salvar Custo'}
+              {isSubmitting ? 'Salvando...' : 'Salvar Conta'}
             </Button>
           </div>
         </form>

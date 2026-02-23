@@ -148,6 +148,10 @@
           "type": "string",
           "description": "A descriptive name for the cost item (e.g., 'Salários - Janeiro', 'Material A')."
         },
+        "supplier": {
+          "type": "string",
+          "description": "The supplier or vendor for this cost item. Optional."
+        },
         "category": {
           "type": "string",
           "description": "Category of the cost (e.g., 'mão de obra', 'materiais', 'marketing')."

@@ -45,14 +45,14 @@ export function RevenueItemDialog({ revenueItem, projects, isOpen, onOpenChange 
     try {
       if (revenueItem) {
         updateRevenueItem(firestore, user.uid, revenueItem.projectId, revenueItem.id, revenueData);
-        toast({ title: 'Sucesso!', description: 'Receita atualizada.' });
+        toast({ title: 'Sucesso!', description: 'Conta a receber atualizada.' });
       } else {
         addRevenueItem(firestore, user.uid, revenueData.projectId, revenueData);
-        toast({ title: 'Sucesso!', description: 'Receita criada.' });
+        toast({ title: 'Sucesso!', description: 'Conta a receber criada.' });
       }
       onOpenChange(false);
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a receita.' });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a conta a receber.' });
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -63,9 +63,9 @@ export function RevenueItemDialog({ revenueItem, projects, isOpen, onOpenChange 
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{revenueItem ? 'Editar Receita' : 'Adicionar Nova Receita'}</DialogTitle>
+          <DialogTitle>{revenueItem ? 'Editar Conta a Receber' : 'Adicionar Nova Conta a Receber'}</DialogTitle>
           <DialogDescription>
-            {revenueItem ? 'Edite os detalhes da sua receita.' : 'Preencha os detalhes para criar uma nova receita.'}
+            {revenueItem ? 'Edite os detalhes da sua conta a receber.' : 'Preencha os detalhes para criar uma nova conta a receber.'}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">

@@ -43,6 +43,7 @@ export interface CostItem extends DocumentData {
     projectId?: string;
     userId: string;
     name: string;
+    supplier?: string;
     category: string;
     plannedAmount: number;
     actualAmount: number;
@@ -103,3 +104,6 @@ export interface MonthlyIOData {
     entradas: number;
     saidas: number;
 }
+
+export type CostItemFormData = Omit<CostItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type RevenueItemFormData = Omit<RevenueItem, 'id' | 'createdAt' | 'updatedAt'>;

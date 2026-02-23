@@ -20,6 +20,7 @@ import {
   TrendingUp,
   ArrowLeftRight,
   Briefcase,
+  CircleDollarSign,
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth } from '@/firebase';
@@ -35,8 +36,8 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { id: 'projects', label: 'Projetos', icon: Briefcase, href: '/dashboard/projects' },
-  { id: 'costs', label: 'Custos', icon: Wallet, href: '/dashboard/costs' },
-  { id: 'revenue', label: 'Receitas', icon: TrendingUp, href: '/dashboard/revenue' },
+  { id: 'costs', label: 'Contas a Pagar', icon: Wallet, href: '/dashboard/costs' },
+  { id: 'revenue', label: 'Contas a Receber', icon: CircleDollarSign, href: '/dashboard/revenue' },
   { id: 'cashflow', label: 'Fluxo de Caixa', icon: ArrowLeftRight, href: '/dashboard/cashflow' },
   { id: 'reports', label: 'Relatórios', icon: BarChart3, href: '/dashboard/reports' },
 ];

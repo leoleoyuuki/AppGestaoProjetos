@@ -85,7 +85,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome da Receita</FormLabel>
+              <FormLabel>Nome da Conta (Parcela)</FormLabel>
               <FormControl>
                 <Input placeholder="Ex: Pagamento da Fase 1" {...field} />
               </FormControl>
@@ -150,7 +150,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
           name="transactionDate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Data da Transação</FormLabel>
+              <FormLabel>Data de Vencimento</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -179,7 +179,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Descrição</FormLabel>
+              <FormLabel>Descrição (Observação)</FormLabel>
               <FormControl>
                 <Textarea placeholder="Detalhes adicionais sobre a receita..." {...field} />
               </FormControl>
@@ -209,7 +209,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
             Cancelar
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Salvando...' : 'Salvar Receita'}
+            {isSubmitting ? 'Salvando...' : 'Salvar Conta'}
           </Button>
         </div>
       </form>

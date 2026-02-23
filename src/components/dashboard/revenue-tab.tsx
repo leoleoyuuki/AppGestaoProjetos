@@ -37,14 +37,14 @@ export default function RevenueTab() {
   }, [firestore, user]);
   const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
-  const getProjectName = (projectId: string) => {
-    return projects?.find(p => p.id === projectId)?.name;
+  const getProjectForRevenue = (projectId: string) => {
+    return projects?.find(p => p.id === projectId);
   };
 
   const handleDeleteConfirm = () => {
     if (!deletingRevenueItem || !user) return;
     deleteRevenueItem(firestore, user.uid, deletingRevenueItem.projectId, deletingRevenueItem.id);
-    toast({ title: 'Sucesso', description: 'Receita excluída.' });
+    toast({ title: 'Sucesso', description: 'Conta a receber excluída.' });
     setDeletingRevenueItem(undefined);
   };
   
@@ -65,28 +65,31 @@ export default function RevenueTab() {
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Todas as Receitas</CardTitle>
+          <CardTitle>Contas a Receber</CardTitle>
           <Button size="sm" onClick={openDialogForCreate}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Receita
+            Adicionar Conta
           </Button>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Projeto</TableHead>
+                <TableHead>ID Projeto</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Parcela</TableHead>
+                <TableHead>Data de vencimento</TableHead>
+                <TableHead className="text-right">Valor (R$)</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Previsto</TableHead>
-                <TableHead className="text-right">Recebido</TableHead>
+                <TableHead>Forma</TableHead>
+                <TableHead>Observação</TableHead>
                 <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={9}>
                      <div className="space-y-2">
                       <Skeleton className="h-8 w-full" />
                       <Skeleton className="h-8 w-full" />
@@ -95,16 +98,20 @@ export default function RevenueTab() {
                 </TableRow>
               )}
               {!isLoading && userRevenues?.map(revenue => {
+                const project = getProjectForRevenue(revenue.projectId);
                 const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
                 return (
                   <TableRow key={revenue.id}>
-                    <TableCell className="font-medium">{revenue.name}</TableCell>
-                    <TableCell>{getProjectName(revenue.projectId)}</TableCell>
+                    <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
+                    <TableCell>{project?.client || 'N/A'}</TableCell>
+                    <TableCell>{revenue.name}</TableCell>
+                    <TableCell>{new Date(revenue.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
                     <TableCell>
                       <Badge variant={status === 'Recebido' ? 'secondary' : 'default'}>{status}</Badge>
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(revenue.receivedAmount)}</TableCell>
+                    <TableCell>N/A</TableCell> {/* Forma de Pagamento */}
+                    <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -123,11 +130,16 @@ export default function RevenueTab() {
                   </TableRow>
                 );
               })}
+              {!isLoading && (!userRevenues || userRevenues.length === 0) && (
+                 <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-      {(isRevenueItemDialogOpen || editingRevenueItem) && projects && (
+      {(isRevenueItemDialogOpen || editingRevenueItem !== undefined) && projects && (
          <RevenueItemDialog 
             isOpen={isRevenueItemDialogOpen}
             onOpenChange={setRevenueItemDialogOpen}
@@ -135,17 +147,13 @@ export default function RevenueTab() {
             revenueItem={editingRevenueItem}
          />
       )}
-      <DeleteAlertDialog
+      {deletingRevenueItem && <DeleteAlertDialog
         isOpen={!!deletingRevenueItem}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setDeletingRevenueItem(undefined);
-          }
-        }}
+        onOpenChange={(isOpen) => !isOpen && setDeletingRevenueItem(undefined)}
         onConfirm={handleDeleteConfirm}
-        title="Tem certeza que deseja excluir esta receita?"
-        description="Esta ação não pode ser desfeita e irá remover permanentemente o item de receita."
-      />
+        title="Tem certeza que deseja excluir esta conta?"
+        description="Esta ação não pode ser desfeita e irá remover permanentemente a conta a receber."
+      />}
     </div>
   );
 }

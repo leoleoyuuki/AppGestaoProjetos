@@ -8,8 +8,6 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
 import { PlusCircle, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import DeviationAssistantDialog from './deviation-assistant-dialog';
-import { analyzeDeviation, type AnalyzeDeviationOutput, type AnalyzeDeviationInput } from "@/ai/flows/deviation-analysis-assistant";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { CostItem, Project } from '@/lib/types';
@@ -18,12 +16,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CostItemDialog } from './cost-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteCostItem } from '@/lib/actions';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function CostsTab() {
   const { toast } = useToast();
-  const [analysisResult, setAnalysisResult] = useState<AnalyzeDeviationOutput | null>(null);
-  const [isDeviationDialogOpen, setDeviationDialogOpen] = useState(false);
   const [isCostItemDialogOpen, setCostItemDialogOpen] = useState(false);
   const [editingCostItem, setEditingCostItem] = useState<CostItem | undefined>(undefined);
   const [deletingCostItem, setDeletingCostItem] = useState<CostItem | undefined>(undefined);
@@ -43,98 +38,18 @@ export default function CostsTab() {
   }, [firestore, user]);
   const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
-  const handleAnalysis = async (projectId: string) => {
-     if (!projects || !costs) return;
-
-    const project = projects.find((p) => p.id === projectId);
-    if (!project) {
-      toast({ variant: "destructive", title: "Erro", description: "Projeto não encontrado." });
-      return;
-    }
-
-    const projectName = project.name;
-    toast({
-      title: "Analisando desvios...",
-      description: `Executando análise de IA para ${projectName}.`
-    });
-
-    const projectCosts = costs.filter((c) => c.projectId === projectId);
-  
-    const predictedCost = projectCosts.reduce((acc, cost) => acc + cost.plannedAmount, 0);
-    const actualCost = projectCosts.reduce((acc, cost) => acc + cost.actualAmount, 0);
-
-    if (predictedCost === 0) {
-      toast({ title: "Análise não disponível", description: "Custo previsto é zero."});
-      return;
-    }
-
-    const input: AnalyzeDeviationInput = {
-      projectName: project.name,
-      predictedCost,
-      actualCost,
-      deviationThresholdPercentage: 10,
-      projectDescription: `Análise de custos para o projeto ${project.name}.`,
-      costCategories: projectCosts.map(cost => ({
-        category: cost.category,
-        predicted: cost.plannedAmount,
-        actual: cost.actualAmount,
-      })),
-    };
-
-    try {
-      const result = await analyzeDeviation(input); 
-      if (result) {
-        if(result.isSignificantDeviation) {
-          setAnalysisResult(result);
-          setDeviationDialogOpen(true);
-        } else {
-          toast({
-            title: "Análise Concluída",
-            description: `Nenhum desvio significativo encontrado para ${projectName}.`,
-          });
-        }
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Erro na Análise",
-          description: "Não foi possível executar a análise de desvio.",
-        });
-      }
-    } catch (error) {
-      console.error("Error running deviation analysis:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro na Análise",
-        description: "Ocorreu um erro ao executar a análise.",
-      });
-    }
-  };
-
-  const getDeviationStatus = (cost: CostItem) => {
-    if (cost.actualAmount === 0 || cost.plannedAmount === 0) return null;
-    const deviation = (cost.actualAmount - cost.plannedAmount) / cost.plannedAmount;
-    if (Math.abs(deviation) > 0.1) {
-      return {
-        isOver: deviation > 0,
-        percentage: Math.abs(deviation) * 100
-      };
-    }
-    return null;
-  }
-
   const getProjectName = (projectId?: string) => {
-    if (!projectId) return 'Nenhum (Custo da Empresa)';
-    return projects?.find(p => p.id === projectId)?.name;
+    if (!projectId) return 'Geral';
+    return projects?.find(p => p.id === projectId)?.name || 'Geral';
   };
 
   const handleDeleteConfirm = () => {
     if (!deletingCostItem || !user) return;
     deleteCostItem(firestore, user.uid, deletingCostItem.id);
-    toast({ title: 'Sucesso', description: 'Custo excluído.' });
+    toast({ title: 'Sucesso', description: 'Conta a pagar excluída.' });
     setDeletingCostItem(undefined);
   };
   
-  const recurringCosts = costs?.filter(cost => cost.isRecurring);
   const isLoading = costsLoading || projectsLoading;
 
   const openDialogForEdit = (cost: CostItem) => {
@@ -147,137 +62,78 @@ export default function CostsTab() {
     setCostItemDialogOpen(true);
   }
 
-  const renderTableRows = (costList: CostItem[] | undefined) => {
-    if (!costList) return null;
-    return costList.map(cost => {
-      const deviation = getDeviationStatus(cost);
-      return (
-        <TableRow key={cost.id}>
-          <TableCell className="font-medium">{cost.name}</TableCell>
-          <TableCell>{getProjectName(cost.projectId)}</TableCell>
-          <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
-          <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
-          <TableCell className="text-right">{formatCurrency(cost.actualAmount)}</TableCell>
-          <TableCell className="text-center">
-            {deviation ? (
-              <Badge variant={deviation.isOver ? "destructive" : "secondary"}>
-                {deviation.isOver ? '▲' : '▼'} {deviation.percentage.toFixed(0)}%
-              </Badge>
-            ) : (
-              <span className="text-muted-foreground">-</span>
-            )}
-          </TableCell>
-          <TableCell className="text-right">
-             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
-                {cost.projectId && <DropdownMenuItem onClick={() => handleAnalysis(cost.projectId!)}>
-                   Analisar Desvio
-                 </DropdownMenuItem>}
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
-                  Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-      );
-    });
-  }
-
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Gerenciamento de Custos</CardTitle>
+          <CardTitle>Contas a Pagar</CardTitle>
           <Button size="sm" onClick={openDialogForCreate}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Custo
+            Adicionar Conta
           </Button>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="all">Todos os Custos</TabsTrigger>
-              <TabsTrigger value="recurring">Custos Recorrentes</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="mt-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Projeto</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Previsto</TableHead>
-                    <TableHead className="text-right">Real</TableHead>
-                    <TableHead className="text-center">Desvio</TableHead>
-                    <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && (
-                    <TableRow>
-                      <TableCell colSpan={7}>
-                        <div className="space-y-2">
-                          <Skeleton className="h-8 w-full" />
-                          <Skeleton className="h-8 w-full" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!isLoading && renderTableRows(costs)}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="recurring" className="mt-4">
-               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Projeto</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Previsto</TableHead>
-                    <TableHead className="text-right">Real</TableHead>
-                    <TableHead className="text-center">Desvio</TableHead>
-                    <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading && (
-                    <TableRow>
-                      <TableCell colSpan={7}>
-                        <div className="space-y-2">
-                          <Skeleton className="h-8 w-full" />
-                          <Skeleton className="h-8 w-full" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {!isLoading && recurringCosts && recurringCosts.length > 0 && renderTableRows(recurringCosts)}
-                  {!isLoading && (!recurringCosts || recurringCosts.length === 0) && (
-                    <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
-                            Nenhum custo recorrente encontrado.
-                        </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-          </Tabs>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fornecedor</TableHead>
+                <TableHead>Referência</TableHead>
+                <TableHead>Data de vencimento</TableHead>
+                <TableHead className="text-right">Valor (R$)</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Observação</TableHead>
+                <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={8}>
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && costs?.map(cost => (
+                <TableRow key={cost.id}>
+                  <TableCell className="font-medium">{cost.supplier || '-'}</TableCell>
+                  <TableCell>{getProjectName(cost.projectId)}</TableCell>
+                  <TableCell>{new Date(cost.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
+                  <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
+                  <TableCell><Badge variant={cost.actualAmount > 0 ? 'secondary' : 'default'}>{cost.actualAmount > 0 ? 'Pago' : 'Pendente'}</Badge></TableCell>
+                  <TableCell className="truncate max-w-xs">{cost.description || '-'}</TableCell>
+                  <TableCell className="text-right">
+                     <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && costs?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-      <DeviationAssistantDialog
-        isOpen={isDeviationDialogOpen}
-        setOpen={setDeviationDialogOpen}
-        analysisResult={analysisResult}
-      />
-      {(isCostItemDialogOpen || editingCostItem) && projects && (
+
+      {(isCostItemDialogOpen || editingCostItem !== undefined) && projects && (
          <CostItemDialog 
             isOpen={isCostItemDialogOpen}
             onOpenChange={setCostItemDialogOpen}
@@ -285,17 +141,13 @@ export default function CostsTab() {
             costItem={editingCostItem}
          />
       )}
-      <DeleteAlertDialog
+      {deletingCostItem && <DeleteAlertDialog
         isOpen={!!deletingCostItem}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setDeletingCostItem(undefined);
-          }
-        }}
+        onOpenChange={(isOpen) => !isOpen && setDeletingCostItem(undefined)}
         onConfirm={handleDeleteConfirm}
-        title="Tem certeza que deseja excluir este custo?"
-        description="Esta ação não pode ser desfeita e irá remover permanentemente o item de custo."
-      />
+        title="Tem certeza que deseja excluir esta conta?"
+        description="Esta ação não pode ser desfeita e irá remover permanentemente a conta a pagar."
+      />}
     </div>
   );
 }
