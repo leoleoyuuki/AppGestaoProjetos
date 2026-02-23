@@ -13,6 +13,7 @@ import { collectionGroup, query } from 'firebase/firestore';
 import type { CostItem } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from "../ui/skeleton";
+import { formatCurrency } from "@/lib/utils";
 
 
 const chartConfig = {
@@ -80,8 +81,20 @@ export default function CostPieChart() {
     >
       <PieChart>
         <ChartTooltip
-          cursor={false}
-          content={<ChartTooltipContent hideLabel nameKey="name" />}
+            cursor={false}
+            content={<ChartTooltipContent
+                formatter={(value, name, item) => (
+                    <div className="flex items-center">
+                        <div
+                            className="w-2.5 h-2.5 rounded-full mr-2"
+                            style={{ backgroundColor: item.color }}
+                        />
+                        <div className="flex-1 text-muted-foreground capitalize">{name as string}</div>
+                        <div className="font-mono font-medium tabular-nums text-foreground">{formatCurrency(Number(value))}</div>
+                    </div>
+                )}
+                hideLabel
+            />}
         />
         <Pie
           data={chartData}

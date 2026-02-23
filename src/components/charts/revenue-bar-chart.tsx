@@ -61,7 +61,23 @@ export default function RevenueBarChart() {
           axisLine={false}
         />
         <YAxis tickFormatter={(value) => formatCurrency(Number(value))} />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+            cursor={false}
+            content={
+                <ChartTooltipContent
+                    formatter={(value, name, item) => (
+                        <div className="flex items-center">
+                            <div
+                                className="w-2.5 h-2.5 rounded-full mr-2"
+                                style={{ backgroundColor: item.color }}
+                            />
+                            <div className="flex-1 text-muted-foreground capitalize">{name as string}</div>
+                            <div className="font-mono font-medium tabular-nums text-foreground">{formatCurrency(Number(value))}</div>
+                        </div>
+                    )}
+                />
+            }
+        />
         <Legend />
         <Bar dataKey="predicted" fill="var(--color-predicted)" radius={4} />
         <Bar dataKey="actual" fill="var(--color-actual)" radius={4} />

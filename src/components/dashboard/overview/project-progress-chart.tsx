@@ -1,14 +1,28 @@
 "use client"
 
-import { Pie, PieChart, ResponsiveContainer, Cell, Tooltip } from "recharts"
+import { Pie, PieChart, ResponsiveContainer, Cell } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Project } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 
+const chartConfig = {
+  progress: {
+    label: "Progresso",
+    color: "hsl(var(--chart-1))",
+  },
+  remaining: {
+    label: "Restante",
+    color: "hsl(var(--muted))",
+  },
+}
 
 export default function ProjectProgressChart() {
     const { user } = useUser();
@@ -44,11 +58,9 @@ export default function ProjectProgressChart() {
     }, [projects]);
     
     const chartData = [
-        { name: "Progress", value: progress },
-        { name: "Remaining", value: 100 - progress },
+        { name: "progress", value: progress, fill: "var(--color-progress)" },
+        { name: "remaining", value: 100 - progress, fill: "var(--color-remaining)" },
     ];
-
-    const COLORS = ["hsl(var(--primary))", "hsl(var(--muted))"];
 
   return (
     <Card className="rounded-2xl col-span-1 lg:col-span-2">
@@ -59,31 +71,43 @@ export default function ProjectProgressChart() {
         {projectsLoading ? <Skeleton className="w-full h-[200px]" /> : (
             <div className="flex flex-col md:flex-row items-center gap-8">
                 <div className="h-[200px] w-[200px] relative">
-                <ResponsiveContainer width="100%" height="100%">
+                  <ChartContainer
+                    config={chartConfig}
+                    className="mx-auto aspect-square h-full"
+                  >
                     <PieChart>
-                    <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        startAngle={90}
-                        endAngle={450}
-                        dataKey="value"
-                        stroke="none"
-                    >
-                        {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Pie>
+                      <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent
+                            formatter={(value, name) => (
+                                <div className="flex items-center">
+                                    <div className="flex-1 text-muted-foreground capitalize">{chartConfig[name as keyof typeof chartConfig]?.label}</div>
+                                    <div className="font-mono font-medium tabular-nums text-foreground">{`${Math.round(Number(value))}%`}</div>
+                                </div>
+                            )}
+                            hideLabel
+                            hideIndicator
+                        />}
+                      />
+                      <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          startAngle={90}
+                          endAngle={450}
+                          dataKey="value"
+                          stroke="none"
+                      />
                     </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                        <p className="text-4xl font-bold">{Math.round(progress)}%</p>
-                        <p className="text-sm text-muted-foreground">Project Ended</p>
-                    </div>
-                </div>
+                  </ChartContainer>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                          <p className="text-4xl font-bold">{Math.round(progress)}%</p>
+                          <p className="text-sm text-muted-foreground">Project Ended</p>
+                      </div>
+                  </div>
                 </div>
                  <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2">
@@ -111,4 +135,3 @@ export default function ProjectProgressChart() {
     </Card>
   )
 }
-
