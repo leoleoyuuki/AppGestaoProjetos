@@ -61,61 +61,6 @@ export default function RevenueTab() {
     setRevenueItemDialogOpen(true);
   };
 
-  let tableContent;
-  if (isLoading) {
-    tableContent = (
-      <TableRow>
-        <TableCell colSpan={9}>
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        </TableCell>
-      </TableRow>
-    );
-  } else if (userRevenues && userRevenues.length > 0) {
-    tableContent = userRevenues.map(revenue => {
-      const project = getProjectForRevenue(revenue.projectId);
-      const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
-      return (
-        <TableRow key={revenue.id}>
-          <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
-          <TableCell>{project?.client || 'N/A'}</TableCell>
-          <TableCell>{revenue.name}</TableCell>
-          <TableCell>{new Date(revenue.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
-          <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
-          <TableCell>
-            <Badge variant={status === 'Recebido' ? 'secondary' : 'default'}>{status}</Badge>
-          </TableCell>
-          <TableCell>N/A</TableCell> {/* Forma de Pagamento */}
-          <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
-          <TableCell className="text-right">
-             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
-                  Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-      );
-    });
-  } else {
-    tableContent = (
-      <TableRow>
-        <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
-      </TableRow>
-    );
-  }
-
-
   return (
     <div className="space-y-6">
       <Card>
@@ -142,7 +87,54 @@ export default function RevenueTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tableContent}
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={9}>
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && userRevenues && userRevenues.length > 0 && userRevenues.map(revenue => {
+                const project = getProjectForRevenue(revenue.projectId);
+                const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
+                return (
+                  <TableRow key={revenue.id}>
+                    <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
+                    <TableCell>{project?.client || 'N/A'}</TableCell>
+                    <TableCell>{revenue.name}</TableCell>
+                    <TableCell>{new Date(revenue.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
+                    <TableCell>
+                      <Badge variant={status === 'Recebido' ? 'secondary' : 'default'}>{status}</Badge>
+                    </TableCell>
+                    <TableCell>N/A</TableCell>
+                    <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {!isLoading && (!userRevenues || userRevenues.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
