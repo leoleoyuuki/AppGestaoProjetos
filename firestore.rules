@@ -2,16 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra principal para acesso de leitura. Um usuário pode ler (get, list) qualquer documento
-    // se o seu UID estiver no caminho. Isso protege as leituras de documentos individuais
-    // e permite listar coleções como 'projects' e 'fixedCosts'.
-    match /users/{userId}/{document=**} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Regra específica para consultas de grupo de coleções. Isso permite que a operação 'list'
-    // seja iniciada. A regra 'read' acima (via 'get' implícito) garantirá a segurança 
-    // dos documentos individuais retornados pela consulta.
+    // --- Collection Group Queries ---
+    // Allow users to query their own items across different projects.
+    // The read rule below will secure the individual documents.
     match /{path=**}/revenueItems/{revenueItem} {
       allow list: if request.auth != null;
     }
@@ -19,38 +12,44 @@ service cloud.firestore {
       allow list: if request.auth != null;
     }
 
-    // --- Regras de Escrita ---
-    // As regras de escrita são mais granulares para garantir a integridade dos dados e que os usuários
-    // possam apenas modificar seus próprios dados.
-
-    // O usuário pode ler e escrever em seu próprio documento de perfil de usuário.
+    // --- User Data Access ---
+    // All user-specific data is nested under their UID.
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // --- User Profile Document ---
+      // Users can read and update their own profile.
+      // Creation requires the document ID to match the user's UID.
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.id == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
-    }
 
-    // Os usuários podem escrever em documentos em suas próprias subcoleções,
-    // com uma verificação adicional de que os próprios dados do documento contêm seu userId.
-    // Isso evita a colocação incorreta acidental de dados.
-    match /users/{userId}/projects/{projectId} {
-      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
-    }
+      // --- Projects Subcollection ---
+      match /projects/{projectId} {
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
 
-    match /users/{userId}/projects/{projectId}/costItems/{costItemId} {
-      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
-    }
-    
-    match /users/{userId}/projects/{projectId}/revenueItems/{revenueItemId} {
-      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
-    }
+        // --- Cost Items Subcollection ---
+        match /costItems/{costItemId} {
+          allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+          allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+        }
 
-    match /users/{userId}/paymentMethods/{paymentMethodId} {
-      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
-    }
+        // --- Revenue Items Subcollection ---
+        match /revenueItems/{revenueItemId} {
+          allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+          allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+        }
+      }
 
-    match /users/{userId}/fixedCosts/{fixedCostId} {
-      allow write: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+      // --- Payment Methods Subcollection ---
+      match /paymentMethods/{paymentMethodId} {
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+      }
+
+      // --- Fixed Costs Subcollection ---
+      match /fixedCosts/{fixedCostId} {
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+      }
     }
   }
 }
