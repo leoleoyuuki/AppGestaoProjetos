@@ -104,8 +104,9 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
             <FormItem>
               <FormLabel>Projeto</FormLabel>
               <Select
+                key={field.value}
                 onValueChange={(value) => field.onChange(value === '--none--' ? undefined : value)}
-                value={field.value || '--none--'}
+                defaultValue={field.value || '--none--'}
               >
                 <FormControl>
                   <SelectTrigger>
