@@ -1,19 +1,18 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Bell, Mail, LogOut } from 'lucide-react';
+import { Search, Bell, Mail, LogOut, Settings } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Link from 'next/link';
 
 export default function Header() {
   const { user } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
-  const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
 
   const handleSignOut = async () => {
     try {
@@ -22,6 +21,16 @@ export default function Header() {
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
+  };
+
+  const getInitials = () => {
+    if (user?.displayName) {
+      return user.displayName.charAt(0).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -52,12 +61,10 @@ export default function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              {userAvatar && (
                 <Avatar>
-                  <AvatarImage src={user?.photoURL || userAvatar.imageUrl} alt="User Avatar" data-ai-hint={userAvatar.imageHint} />
-                  <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+                  <AvatarImage src={user?.photoURL || undefined} alt="User Avatar" />
+                  <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
-              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -65,10 +72,17 @@ export default function Header() {
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.displayName || (user?.isAnonymous ? 'Anonymous User' : 'User')}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email || 'anon@donezo.com'}
+                  {user?.email || 'anon@finestra.com'}
                 </p>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Configurações</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />

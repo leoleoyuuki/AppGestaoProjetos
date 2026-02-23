@@ -1,18 +1,6 @@
 {
   "placeholderImages": [
     {
-      "id": "logo",
-      "description": "Donezo Logo",
-      "imageUrl": "https://images.unsplash.com/photo-1611932902444-5965940e8389?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxncmVlbiUyMGhlYXJ0JTIwbG9nb3xlbnwwfHx8fDE3MTU0NjI5NzV8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "green heart logo"
-    },
-    {
-      "id": "user-avatar",
-      "description": "User Avatar",
-      "imageUrl": "https://images.unsplash.com/photo-1521119989659-a83eee488004?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzE2OTk5MDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "person portrait"
-    },
-    {
       "id": "download-app-bg",
       "description": "Abstract green background",
       "imageUrl": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxncmVlbiUyMGFic3RyYWN0fGVufDB8fHx8MTcxNTQ2MzM3MXww&ixlib=rb-4.0.3&q=80&w=1080",

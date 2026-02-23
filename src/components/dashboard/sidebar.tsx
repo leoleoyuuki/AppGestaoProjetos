@@ -42,9 +42,9 @@ const navItems = [
 ];
 
 const generalItems = [
-    { id: 'settings', label: 'Settings', icon: Settings, href: '#' },
-    { id: 'help', label: 'Help', icon: CircleHelp, href: '#' },
-    { id: 'logout', label: 'Logout', icon: LogOut, href: '#' },
+    { id: 'settings', label: 'Configurações', icon: Settings, href: '/dashboard/settings' },
+    { id: 'help', label: 'Ajuda', icon: CircleHelp, href: '#' },
+    { id: 'logout', label: 'Sair', icon: LogOut, href: '#' },
 ]
 
 export default function AppSidebar() {
@@ -56,15 +56,17 @@ export default function AppSidebar() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      toast({ title: 'Success', description: 'Signed out successfully' });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      toast({ title: 'Sucesso', description: 'Sessão encerrada com sucesso.' });
+    } catch (error: any)
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
     }
   };
 
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname === href;
-    return pathname.startsWith(href);
+    // For settings, it's a specific page
+    if (href.includes('settings')) return pathname === href;
+    return pathname.startsWith(href) && href !== '/dashboard';
   };
 
   return (
@@ -79,8 +81,9 @@ export default function AppSidebar() {
                 <SidebarMenu>
                 {navItems.map((item) => (
                     <SidebarMenuItem key={item.id}>
-                      <Link href={item.href} asChild>
+                      <Link href={item.href} passHref legacyBehavior>
                         <SidebarMenuButton
+                            as="a"
                             isActive={isActive(item.href)}
                             tooltip={item.label}
                             className={cn("justify-start", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
@@ -95,18 +98,32 @@ export default function AppSidebar() {
             </div>
 
             <div>
-                <span className="text-xs text-muted-foreground px-2">GENERAL</span>
+                <span className="text-xs text-muted-foreground px-2">GERAL</span>
                 <SidebarMenu>
                 {generalItems.map((item) => (
                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton
-                            onClick={item.id === 'logout' ? handleSignOut : undefined}
-                            tooltip={item.label}
-                            className="justify-start text-muted-foreground hover:text-foreground"
-                        >
-                            <item.icon />
-                            <span>{item.label}</span>
-                        </SidebarMenuButton>
+                        {item.id === 'logout' ? (
+                           <SidebarMenuButton
+                                onClick={handleSignOut}
+                                tooltip={item.label}
+                                className="justify-start text-muted-foreground hover:text-foreground"
+                            >
+                                <item.icon />
+                                <span>{item.label}</span>
+                            </SidebarMenuButton>
+                        ) : (
+                           <Link href={item.href} passHref legacyBehavior>
+                             <SidebarMenuButton
+                                as="a"
+                                isActive={isActive(item.href)}
+                                tooltip={item.label}
+                                className={cn("justify-start text-muted-foreground hover:text-foreground", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
+                              >
+                                  <item.icon className={cn(isActive(item.href) && "text-primary")} />
+                                  <span>{item.label}</span>
+                              </SidebarMenuButton>
+                           </Link>
+                        )}
                     </SidebarMenuItem>
                 ))}
                 </SidebarMenu>

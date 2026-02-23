@@ -6,12 +6,66 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
   serverTimestamp,
   type Firestore,
 } from 'firebase/firestore';
-import type { Project, CostItem, RevenueItem } from './types';
+import type { Project, CostItem, RevenueItem, UserProfile } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+
+// --- UserProfile Actions ---
+
+export function createUserProfile(
+  firestore: Firestore,
+  userId: string,
+  email: string | null,
+  name: string
+) {
+  const userDocRef = doc(firestore, `users/${userId}`);
+  const data = {
+    id: userId,
+    email: email || '',
+    name: name,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  setDoc(userDocRef, data).catch((error) => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
+export function updateUserProfile(
+  firestore: Firestore,
+  userId: string,
+  profileData: { name: string }
+) {
+  const userDocRef = doc(firestore, `users/${userId}`);
+  const data = {
+    ...profileData,
+    updatedAt: serverTimestamp(),
+  };
+
+  updateDoc(userDocRef, data).catch((error) => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: userDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
 
 // --- Project Actions ---
 
