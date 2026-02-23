@@ -79,17 +79,14 @@ export default function AppSidebar() {
                 <SidebarMenu>
                 {navItems.map((item) => (
                     <SidebarMenuItem key={item.id}>
-                      <Link href={item.href} passHref>
+                      <Link href={item.href} asChild>
                         <SidebarMenuButton
-                            asChild
                             isActive={isActive(item.href)}
                             tooltip={item.label}
                             className={cn("justify-start", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
                         >
-                            <>
-                              <item.icon className={cn(isActive(item.href) && "text-primary")} />
-                              <span>{item.label}</span>
-                            </>
+                            <item.icon className={cn(isActive(item.href) && "text-primary")} />
+                            <span>{item.label}</span>
                         </SidebarMenuButton>
                       </Link>
                     </SidebarMenuItem>
