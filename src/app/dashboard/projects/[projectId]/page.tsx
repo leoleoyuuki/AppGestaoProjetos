@@ -11,17 +11,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
 import { formatCurrency } from '@/lib/utils';
-import type { Project, CostItem, RevenueItem } from '@/lib/types';
-import { PlusCircle, DollarSign, Wallet, Activity, Percent, TrendingUp, TrendingDown, Edit } from 'lucide-react';
+import type { Project, CostItem, RevenueItem, ProjectStatus } from '@/lib/types';
+import { PlusCircle, DollarSign, Wallet, Activity, Percent, TrendingUp, TrendingDown, Edit, CheckCircle } from 'lucide-react';
 import { CostItemDialog } from '@/components/dashboard/cost-item-dialog';
 import { RevenueItemDialog } from '@/components/dashboard/revenue-item-dialog';
 import { ProjectDialog } from '@/components/dashboard/project-dialog';
+import { updateProject } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+
+const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
+  'Pendente': 'outline',
+  'Em andamento': 'default',
+  'Instalado': 'default',
+  'Concluído': 'secondary',
+  'Cancelado': 'destructive',
+};
 
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.projectId as string;
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   
   const [isCostDialogOpen, setCostDialogOpen] = useState(false);
   const [isRevenueDialogOpen, setRevenueDialogOpen] = useState(false);
@@ -46,6 +57,15 @@ export default function ProjectDetailPage() {
   const { data: revenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenuesQuery);
 
   const isLoading = projectLoading || costsLoading || revenuesLoading;
+
+  const handleCompleteProject = () => {
+    if (!user || !firestore || !project) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível concluir o projeto.' });
+      return;
+    }
+    updateProject(firestore, user.uid, project.id, { status: 'Concluído' });
+    toast({ title: 'Sucesso!', description: 'Projeto marcado como concluído.' });
+  };
 
   const actualTotalRevenue = revenues?.reduce((acc, item) => acc + item.receivedAmount, 0) || 0;
   const actualTotalCost = costs?.reduce((acc, item) => acc + item.actualAmount, 0) || 0;
@@ -78,11 +98,20 @@ export default function ProjectDetailPage() {
         <div>
           <h1 className="text-3xl font-bold">{project.name}</h1>
           <p className="text-muted-foreground">Cliente: {project.client}</p>
+          <Badge variant={statusVariant[project.status]} className="mt-2">{project.status}</Badge>
         </div>
-        <Button size="sm" onClick={() => setProjectDialogOpen(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar Projeto
-        </Button>
+        <div className="flex gap-2">
+            {project.status !== 'Concluído' && project.status !== 'Cancelado' && (
+                <Button size="sm" variant="secondary" onClick={handleCompleteProject}>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Concluir Projeto
+                </Button>
+            )}
+            <Button size="sm" onClick={() => setProjectDialogOpen(true)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar Projeto
+            </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
