@@ -14,7 +14,7 @@ import type { CostItem, RevenueItem } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface ProjectAnalyticsChartProps {
+interface MonthlyIOChartProps {
     costs: CostItem[] | null;
     revenues: RevenueItem[] | null;
     isLoading: boolean;
@@ -32,7 +32,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export default function ProjectAnalyticsChart({ costs, revenues, isLoading, userId }: ProjectAnalyticsChartProps) {
+export default function MonthlyIOChart({ costs, revenues, isLoading, userId }: MonthlyIOChartProps) {
   const chartData = useMemo(() => {
     if (!costs || !revenues || !userId) return [];
     
