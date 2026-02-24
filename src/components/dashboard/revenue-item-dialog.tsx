@@ -9,10 +9,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useUser, useFirestore } from '@/firebase';
-import type { RevenueItem, Project } from '@/lib/types';
+import type { RevenueItem, RevenueItemFormData } from '@/lib/types';
 import { RevenueItemForm, type RevenueItemFormValues } from './revenue-item-form';
 import { addRevenueItem, updateRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { addMonths } from 'date-fns';
 
 interface RevenueItemDialogProps {
   revenueItem?: RevenueItem;
@@ -34,21 +35,72 @@ export function RevenueItemDialog({ revenueItem, projects, isOpen, onOpenChange 
     }
 
     setIsSubmitting(true);
-    const revenueData = {
-      ...values,
-      transactionDate: values.transactionDate.toISOString().split('T')[0], // format to 'YYYY-MM-DD'
-      userId: user.uid,
-      // Placeholder, as PaymentMethod is not fully implemented
-      paymentMethodId: 'placeholder',
-    };
 
     try {
       if (revenueItem) {
+        // Editing logic remains the same (no installment creation on edit)
+        const revenueData = {
+          ...(values as any),
+          transactionDate: values.transactionDate!.toISOString().split('T')[0],
+          userId: user.uid,
+          paymentMethodId: 'placeholder',
+        };
         updateRevenueItem(firestore, user.uid, revenueItem.projectId, revenueItem.id, revenueData);
         toast({ title: 'Sucesso!', description: 'Conta a receber atualizada.' });
       } else {
-        addRevenueItem(firestore, user.uid, revenueData.projectId, revenueData);
-        toast({ title: 'Sucesso!', description: 'Conta a receber criada.' });
+        // Creation Logic
+        if (values.isInstallment) {
+          const { name, projectId, description, totalAmount, numberOfInstallments, firstInstallmentDate } = values;
+
+          if(!totalAmount || !numberOfInstallments || !firstInstallmentDate) {
+              toast({ variant: 'destructive', title: 'Erro', description: 'Dados de parcelamento incompletos.' });
+              setIsSubmitting(false);
+              return;
+          }
+
+          const installmentValue = parseFloat((totalAmount / numberOfInstallments).toFixed(2));
+          const remainder = parseFloat((totalAmount - (installmentValue * numberOfInstallments)).toFixed(2));
+
+          for (let i = 0; i < numberOfInstallments; i++) {
+              const revenueDataForInstallment: RevenueItemFormData = {
+                  name: `${name} - Parcela ${i + 1}/${numberOfInstallments}`,
+                  projectId,
+                  userId: user.uid,
+                  paymentMethodId: 'placeholder',
+                  plannedAmount: i === numberOfInstallments - 1 ? installmentValue + remainder : installmentValue,
+                  receivedAmount: 0,
+                  transactionDate: addMonths(firstInstallmentDate, i).toISOString().split('T')[0],
+                  description: description || '',
+                  isInstallment: true,
+                  installmentNumber: i + 1,
+                  totalInstallments: numberOfInstallments,
+              };
+              addRevenueItem(firestore, user.uid, projectId, revenueDataForInstallment);
+          }
+          toast({ title: 'Sucesso!', description: `${numberOfInstallments} parcelas criadas.` });
+
+        } else {
+            const { name, projectId, description, plannedAmount, receivedAmount, transactionDate } = values;
+
+            if(!plannedAmount || !transactionDate) {
+                toast({ variant: 'destructive', title: 'Erro', description: 'Dados de pagamento único incompletos.' });
+                setIsSubmitting(false);
+                return;
+            }
+            const revenueData: RevenueItemFormData = {
+                name,
+                projectId,
+                userId: user.uid,
+                paymentMethodId: 'placeholder',
+                plannedAmount,
+                receivedAmount: receivedAmount || 0,
+                transactionDate: transactionDate.toISOString().split('T')[0],
+                description: description || '',
+                isInstallment: false,
+            };
+            addRevenueItem(firestore, user.uid, projectId, revenueData);
+            toast({ title: 'Sucesso!', description: 'Conta a receber criada.' });
+        }
       }
       onOpenChange(false);
     } catch (error) {

@@ -303,7 +303,7 @@ export function payCostItem(
 
 // --- RevenueItem Actions ---
 
-export type RevenueItemFormData = Omit<RevenueItem, 'id' | 'createdAt' | 'updatedAt' | 'paymentMethodId'>;
+export type RevenueItemFormData = Omit<RevenueItem, 'id' | 'createdAt' | 'updatedAt'>;
 
 export function addRevenueItem(
   firestore: Firestore,
