@@ -94,7 +94,8 @@ const parseDateString = (dateString: string | Date): Date => {
 };
 
 export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isSubmitting }: RevenueItemFormProps) {
-  const [isCalendarOpen, setCalendarOpen] = useState(false);
+  const [isTransactionCalendarOpen, setTransactionCalendarOpen] = useState(false);
+  const [isFirstInstallmentCalendarOpen, setFirstInstallmentCalendarOpen] = useState(false);
   const isEditing = !!revenueItem;
   
   const form = useForm<RevenueItemFormValues>({
@@ -234,7 +235,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data da Primeira Parcela</FormLabel>
-                  <Dialog open={isCalendarOpen} onOpenChange={setCalendarOpen}>
+                  <Dialog open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen}>
                     <DialogTrigger asChild>
                       <FormControl>
                         <Button
@@ -246,7 +247,22 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                         </Button>
                       </FormControl>
                     </DialogTrigger>
-                    <DialogContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => { if(d) field.onChange(d); setCalendarOpen(false); }} initialFocus /></DialogContent>
+                    <DialogContent className="w-auto p-0">
+                      <DialogHeader className="p-4 items-center">
+                        <DialogTitle>Data da Primeira Parcela</DialogTitle>
+                      </DialogHeader>
+                      <Separator />
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(d) => { if(d) field.onChange(d); setFirstInstallmentCalendarOpen(false); }}
+                        initialFocus
+                      />
+                      <Separator />
+                      <DialogFooter className="p-2">
+                        <Button className="w-full" variant="ghost" onClick={() => setFirstInstallmentCalendarOpen(false)}>Cancelar</Button>
+                      </DialogFooter>
+                    </DialogContent>
                   </Dialog>
                   <FormMessage />
                 </FormItem>
@@ -286,7 +302,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Vencimento</FormLabel>
-                  <Dialog open={isCalendarOpen} onOpenChange={setCalendarOpen}>
+                  <Dialog open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
                     <DialogTrigger asChild>
                       <FormControl>
                         <Button
@@ -298,7 +314,22 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                         </Button>
                       </FormControl>
                     </DialogTrigger>
-                    <DialogContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => { if(d) field.onChange(d); setCalendarOpen(false);}} initialFocus /></DialogContent>
+                    <DialogContent className="w-auto p-0">
+                      <DialogHeader className="p-4 items-center">
+                          <DialogTitle>Data de Vencimento</DialogTitle>
+                      </DialogHeader>
+                      <Separator />
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(d) => { if(d) field.onChange(d); setTransactionCalendarOpen(false);}}
+                        initialFocus
+                      />
+                      <Separator />
+                      <DialogFooter className="p-2">
+                          <Button className="w-full" variant="ghost" onClick={() => setTransactionCalendarOpen(false)}>Cancelar</Button>
+                      </DialogFooter>
+                    </DialogContent>
                   </Dialog>
                   <FormMessage />
                 </FormItem>
