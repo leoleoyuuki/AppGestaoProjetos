@@ -34,6 +34,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import type { CostItem, Project, CostCategory } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
@@ -253,24 +254,28 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                           !field.value && 'text-muted-foreground'
                         )}
                       >
-                        {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
+                        {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </DialogTrigger>
                   <DialogContent className="w-auto p-0">
-                    <DialogHeader>
-                      <DialogTitle className="sr-only">Escolha uma data</DialogTitle>
-                    </DialogHeader>
+                    <div className="p-4 border-b">
+                      <h3 className="text-lg font-medium">Data da Transação</h3>
+                    </div>
                     <Calendar
                       mode="single"
                       selected={field.value}
                       onSelect={(date) => {
+                        if(!date) return;
                         field.onChange(date);
                         setCalendarOpen(false);
                       }}
                       initialFocus
                     />
+                    <div className="p-4 border-t flex justify-end">
+                      <Button variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
+                    </div>
                   </DialogContent>
                 </Dialog>
                 <FormMessage />

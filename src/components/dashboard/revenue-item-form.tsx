@@ -34,6 +34,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import type { RevenueItem, Project } from '@/lib/types';
 import { useState, useEffect } from 'react';
 
@@ -177,15 +178,15 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                         !field.value && 'text-muted-foreground'
                       )}
                     >
-                      {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP') : <span>Escolha uma data</span>}
+                      {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </FormControl>
                 </DialogTrigger>
                 <DialogContent className="w-auto p-0">
-                  <DialogHeader>
-                    <DialogTitle className="sr-only">Escolha uma data</DialogTitle>
-                  </DialogHeader>
+                   <div className="p-4 border-b">
+                      <h3 className="text-lg font-medium">Data de Vencimento</h3>
+                    </div>
                   <Calendar
                     mode="single"
                     selected={field.value}
@@ -196,6 +197,9 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                     }}
                     initialFocus
                   />
+                  <div className="p-4 border-t flex justify-end">
+                      <Button variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
+                    </div>
                 </DialogContent>
               </Dialog>
               <FormMessage />
