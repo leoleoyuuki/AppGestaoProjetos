@@ -260,7 +260,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                       </Button>
                     </FormControl>
                   </DialogTrigger>
-                  <DialogContent className="w-auto p-0">
+                  <DialogContent className="w-full max-w-sm p-0 sm:w-auto">
                     <DialogHeader className="p-4 items-center">
                       <DialogTitle>Selecionar Data da Transação</DialogTitle>
                     </DialogHeader>
