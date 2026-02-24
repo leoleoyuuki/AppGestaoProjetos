@@ -36,7 +36,7 @@ import { CalendarIcon, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { CostItem, Project, CostCategory } from '@/lib/types';
+import type { CostItem, Project, CostCategory, CostItemStatus } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
@@ -44,11 +44,14 @@ import { Separator } from '../ui/separator';
 import { AddCategoryDialog } from './add-category-dialog';
 
 
+const costStatus: CostItemStatus[] = ['Pendente', 'Pago'];
+
 const costItemFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
   supplier: z.string().optional(),
   projectId: z.string().optional(),
   category: z.string().min(1, 'A categoria é obrigatória.'),
+  status: z.enum(costStatus, { required_error: 'O status é obrigatório.' }),
   plannedAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
   actualAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
   transactionDate: z.date({ required_error: 'A data é obrigatória.' }),
@@ -96,6 +99,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
         supplier: '',
         projectId: projects.length === 1 ? projects[0].id : undefined,
         category: '',
+        status: 'Pendente',
         plannedAmount: 0,
         actualAmount: 0,
         description: '',
@@ -211,6 +215,30 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {costStatus.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -244,7 +272,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
             name="transactionDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data da Transação</FormLabel>
+                <FormLabel>Data de Vencimento</FormLabel>
                 <Dialog open={isCalendarOpen} onOpenChange={setCalendarOpen}>
                   <DialogTrigger asChild>
                     <FormControl>
@@ -260,9 +288,9 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                       </Button>
                     </FormControl>
                   </DialogTrigger>
-                  <DialogContent className="w-full max-w-sm p-0 sm:w-auto">
+                  <DialogContent className="w-auto p-0" aria-describedby={undefined}>
                     <DialogHeader className="p-4 items-center">
-                      <DialogTitle>Selecionar Data da Transação</DialogTitle>
+                      <DialogTitle>Selecionar Data de Vencimento</DialogTitle>
                     </DialogHeader>
                     <Separator />
                     <Calendar

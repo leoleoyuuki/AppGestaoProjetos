@@ -164,6 +164,14 @@
           "type": "number",
           "description": "The actual amount spent for this cost item."
         },
+        "status": {
+          "type": "string",
+          "description": "The payment status of the cost item.",
+          "enum": [
+            "Pendente",
+            "Pago"
+          ]
+        },
         "transactionDate": {
           "type": "string",
           "description": "The date when the cost was incurred or paid.",
@@ -207,7 +215,8 @@
         "description",
         "isRecurring",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
+        "status"
       ]
     },
     "RevenueItem": {

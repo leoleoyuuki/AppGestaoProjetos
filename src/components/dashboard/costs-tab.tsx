@@ -15,7 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CostItemDialog } from './cost-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
-import { deleteCostItem } from '@/lib/actions';
+import { deleteCostItem, payCostItem } from '@/lib/actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function CostsTab() {
   const { toast } = useToast();
@@ -50,6 +51,12 @@ export default function CostsTab() {
     setDeletingCostItem(undefined);
   };
   
+  const handlePayCostItem = (cost: CostItem) => {
+    if (!user) return;
+    payCostItem(firestore, user.uid, cost);
+    toast({ title: 'Sucesso!', description: 'Conta marcada como paga.' });
+  }
+
   const isLoading = costsLoading || projectsLoading;
 
   const openDialogForEdit = (cost: CostItem) => {
@@ -62,76 +69,125 @@ export default function CostsTab() {
     setCostItemDialogOpen(true);
   }
 
+  const getStatus = (cost: CostItem): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
+    // Handle legacy data that might not have a status
+    const status = cost.status || (cost.actualAmount > 0 ? 'Pago' : 'Pendente');
+    
+    if (status === 'Pago') {
+        return { label: 'Pago', variant: 'secondary' };
+    }
+    const isOverdue = new Date(cost.transactionDate) < new Date();
+    if (isOverdue) {
+        return { label: 'Atrasado', variant: 'destructive' };
+    }
+    return { label: 'Pendente', variant: 'default' };
+  }
+
+  const recurringCosts = costs?.filter(cost => cost.isRecurring) || [];
+  const nonRecurringCosts = costs?.filter(cost => !cost.isRecurring) || [];
+  
+  const renderTable = (costList: CostItem[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Fornecedor</TableHead>
+          <TableHead>Referência</TableHead>
+          <TableHead>Data de vencimento</TableHead>
+          <TableHead className="text-right">Valor (R$)</TableHead>
+          <TableHead>Categoria</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Observação</TableHead>
+          <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isLoading && (
+          <TableRow>
+            <TableCell colSpan={8}>
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+        {!isLoading && costList.map(cost => {
+          const { label, variant } = getStatus(cost);
+          return (
+            <TableRow key={cost.id}>
+              <TableCell className="font-medium">{cost.supplier || '-'}</TableCell>
+              <TableCell>{getProjectName(cost.projectId)}</TableCell>
+              <TableCell>{new Date(cost.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
+              <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
+              <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
+              <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
+              <TableCell className="truncate max-w-xs">{cost.description || '-'}</TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {label !== 'Pago' && (
+                      <DropdownMenuItem onClick={() => handlePayCostItem(cost)}>Marcar como Pago</DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          )
+        })}
+        {!isLoading && costList.length === 0 && (
+          <TableRow>
+            <TableCell colSpan={8} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Contas a Pagar</CardTitle>
-          <Button size="sm" onClick={openDialogForCreate}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Conta
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Referência</TableHead>
-                <TableHead>Data de vencimento</TableHead>
-                <TableHead className="text-right">Valor (R$)</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Observação</TableHead>
-                <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={8}>
-                    <div className="space-y-2">
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && costs?.map(cost => (
-                <TableRow key={cost.id}>
-                  <TableCell className="font-medium">{cost.supplier || '-'}</TableCell>
-                  <TableCell>{getProjectName(cost.projectId)}</TableCell>
-                  <TableCell>{new Date(cost.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
-                  <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
-                  <TableCell><Badge variant={cost.actualAmount > 0 ? 'secondary' : 'default'}>{cost.actualAmount > 0 ? 'Pago' : 'Pendente'}</Badge></TableCell>
-                  <TableCell className="truncate max-w-xs">{cost.description || '-'}</TableCell>
-                  <TableCell className="text-right">
-                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!isLoading && costs?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Contas a Pagar</h1>
+        <Button size="sm" onClick={openDialogForCreate}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Adicionar Conta
+        </Button>
+      </div>
+
+      <Tabs defaultValue="non-recurring">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="non-recurring">Contas a Pagar</TabsTrigger>
+            <TabsTrigger value="recurring">Recorrentes</TabsTrigger>
+        </TabsList>
+        <TabsContent value="non-recurring">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Contas com Vencimento Único</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {renderTable(nonRecurringCosts)}
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="recurring">
+            <Card>
+                 <CardHeader>
+                    <CardTitle>Contas Recorrentes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {renderTable(recurringCosts)}
+                </CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
 
       {(isCostItemDialogOpen || editingCostItem !== undefined) && projects && (
          <CostItemDialog 

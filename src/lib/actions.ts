@@ -275,6 +275,31 @@ export function deleteCostItem(
   });
 }
 
+export function payCostItem(
+  firestore: Firestore,
+  userId: string,
+  costItem: CostItem
+) {
+  const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItem.id);
+  const data = {
+    status: 'Pago' as const,
+    // When paying, set the actual amount to planned amount if it's not already set.
+    actualAmount: costItem.actualAmount > 0 ? costItem.actualAmount : costItem.plannedAmount,
+    updatedAt: serverTimestamp(),
+  };
+
+  updateDoc(costItemDocRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: costItemDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+}
+
 
 // --- RevenueItem Actions ---
 
