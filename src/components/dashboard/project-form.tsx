@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
@@ -35,6 +36,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Project, ProjectStatus } from '@/lib/types';
 import { useState, useEffect } from 'react';
+import { Separator } from '../ui/separator';
 
 const projectStatus: ProjectStatus[] = ['Pendente', 'Em andamento', 'Instalado', 'Concluído', 'Cancelado'];
 
@@ -165,9 +167,10 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                     </FormControl>
                   </DialogTrigger>
                   <DialogContent className="w-auto p-0">
-                    <DialogHeader className="p-4 border-b">
-                      <DialogTitle>Data da Venda</DialogTitle>
+                    <DialogHeader className="p-4 items-center">
+                      <DialogTitle>Selecionar Data da Venda</DialogTitle>
                     </DialogHeader>
+                    <Separator />
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -178,9 +181,10 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                       }}
                       initialFocus
                     />
-                    <div className="p-4 border-t flex justify-end">
-                      <Button variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
-                    </div>
+                    <Separator />
+                    <DialogFooter className="p-2">
+                       <Button className="w-full" variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
+                    </DialogFooter>
                   </DialogContent>
                 </Dialog>
                 <FormMessage />

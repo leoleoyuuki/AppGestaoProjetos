@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, PlusCircle } from 'lucide-react';
@@ -260,9 +261,10 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                     </FormControl>
                   </DialogTrigger>
                   <DialogContent className="w-auto p-0">
-                    <DialogHeader className="p-4 border-b">
-                      <DialogTitle>Data da Transação</DialogTitle>
+                    <DialogHeader className="p-4 items-center">
+                      <DialogTitle>Selecionar Data da Transação</DialogTitle>
                     </DialogHeader>
+                    <Separator />
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -273,9 +275,10 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                       }}
                       initialFocus
                     />
-                    <div className="p-4 border-t flex justify-end">
-                      <Button variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
-                    </div>
+                    <Separator />
+                    <DialogFooter className="p-2">
+                      <Button className="w-full" variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
+                    </DialogFooter>
                   </DialogContent>
                 </Dialog>
                 <FormMessage />

@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
@@ -37,6 +38,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { RevenueItem, Project } from '@/lib/types';
 import { useState, useEffect } from 'react';
+import { Separator } from '../ui/separator';
 
 const revenueItemFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -184,9 +186,10 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                   </FormControl>
                 </DialogTrigger>
                 <DialogContent className="w-auto p-0">
-                  <DialogHeader className="p-4 border-b">
-                    <DialogTitle>Data de Vencimento</DialogTitle>
+                  <DialogHeader className="p-4 items-center">
+                    <DialogTitle>Selecionar Data de Vencimento</DialogTitle>
                   </DialogHeader>
+                  <Separator />
                   <Calendar
                     mode="single"
                     selected={field.value}
@@ -197,9 +200,10 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                     }}
                     initialFocus
                   />
-                  <div className="p-4 border-t flex justify-end">
-                      <Button variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
-                    </div>
+                  <Separator />
+                    <DialogFooter className="p-2">
+                       <Button className="w-full" variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
+                    </DialogFooter>
                 </DialogContent>
               </Dialog>
               <FormMessage />
