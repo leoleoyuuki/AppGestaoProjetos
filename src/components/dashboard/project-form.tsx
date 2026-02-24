@@ -165,9 +165,9 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                     </FormControl>
                   </DialogTrigger>
                   <DialogContent className="w-auto p-0">
-                    <div className="p-4 border-b">
-                      <h3 className="text-lg font-medium">Data da Venda</h3>
-                    </div>
+                    <DialogHeader className="p-4 border-b">
+                      <DialogTitle>Data da Venda</DialogTitle>
+                    </DialogHeader>
                     <Calendar
                       mode="single"
                       selected={field.value}

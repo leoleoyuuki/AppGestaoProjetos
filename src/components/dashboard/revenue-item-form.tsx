@@ -184,9 +184,9 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                   </FormControl>
                 </DialogTrigger>
                 <DialogContent className="w-auto p-0">
-                   <div className="p-4 border-b">
-                      <h3 className="text-lg font-medium">Data de Vencimento</h3>
-                    </div>
+                  <DialogHeader className="p-4 border-b">
+                    <DialogTitle>Data de Vencimento</DialogTitle>
+                  </DialogHeader>
                   <Calendar
                     mode="single"
                     selected={field.value}
