@@ -24,6 +24,10 @@ import { format, startOfMonth, endOfMonth, isWithinInterval, addDays } from 'dat
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '@/lib/utils';
 import MonthlyIOChart from './overview/monthly-io-chart';
+import WeeklySummary from './overview/weekly-summary';
+
+// Helper to parse YYYY-MM-DD strings in the local timezone, avoiding UTC conversion issues.
+const parseLocalDate = (dateString: string) => new Date(dateString + 'T00:00:00');
 
 export default function OverviewTab() {
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
@@ -72,35 +76,35 @@ export default function OverviewTab() {
     
     const userRevenues = revenues.filter(r => r.userId === user.uid);
 
-    // Monthly metrics
+    // Date ranges
     const monthStart = startOfMonth(date);
     const monthEnd = endOfMonth(date);
-
-    const monthlyRevenues = userRevenues.filter(r =>
-      isWithinInterval(new Date(r.transactionDate), { start: monthStart, end: monthEnd })
-    );
-    const monthlyCosts = costs.filter(c =>
-      isWithinInterval(new Date(c.transactionDate), { start: monthStart, end: monthEnd })
-    );
-
-    const totalRevenue = monthlyRevenues.reduce((acc, r) => acc + (r.receivedAmount || 0), 0);
-    const totalCost = monthlyCosts.reduce((acc, c) => acc + (c.actualAmount || 0), 0);
-
-    // 30-day projection metrics
     const today = new Date();
     const thirtyDaysFromNow = addDays(today, 30);
 
+    // --- Monthly realized metrics ---
+    const realizedRevenuesThisMonth = userRevenues.filter(r =>
+      r.receivedAmount > 0 && isWithinInterval(parseLocalDate(r.transactionDate), { start: monthStart, end: monthEnd })
+    );
+    const realizedCostsThisMonth = costs.filter(c =>
+      c.status === 'Pago' && isWithinInterval(parseLocalDate(c.transactionDate), { start: monthStart, end: monthEnd })
+    );
+
+    const totalRevenue = realizedRevenuesThisMonth.reduce((acc, r) => acc + r.receivedAmount, 0);
+    const totalCost = realizedCostsThisMonth.reduce((acc, c) => acc + c.actualAmount, 0);
+
+    // --- 30-day projection metrics (pending items) ---
     const receivableItems = userRevenues.filter(r =>
-      (!r.receivedAmount || r.receivedAmount === 0) && isWithinInterval(new Date(r.transactionDate), { start: today, end: thirtyDaysFromNow })
+      r.receivedAmount === 0 && isWithinInterval(parseLocalDate(r.transactionDate), { start: today, end: thirtyDaysFromNow })
     );
     const totalReceivable = receivableItems.reduce((acc, r) => acc + r.plannedAmount, 0);
 
     const payableItems = costs.filter(c =>
-      (!c.actualAmount || c.actualAmount === 0) && isWithinInterval(new Date(c.transactionDate), { start: today, end: thirtyDaysFromNow })
+      c.status === 'Pendente' && isWithinInterval(parseLocalDate(c.transactionDate), { start: today, end: thirtyDaysFromNow })
     );
     const totalPayable = payableItems.reduce((acc, c) => acc + c.plannedAmount, 0);
     
-    // Average margin for completed projects
+    // --- Average margin for completed projects ---
     const completedProjects = projects.filter(p => p.status === 'Concluído');
     const totalRevenueCompleted = completedProjects.reduce((acc, p) => acc + p.actualTotalRevenue, 0);
     const totalCostCompleted = completedProjects.reduce((acc, p) => acc + p.actualTotalCost, 0);
@@ -162,18 +166,21 @@ export default function OverviewTab() {
           </Button>
         </div>
       </div>
+
+      <WeeklySummary />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <KeyMetricCard
           title="Receita no Mês"
           value={formatCurrency(metrics.revenue)}
-          subText={date ? `Em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
+          subText={date ? `Realizado em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
           Icon={DollarSign}
           isLoading={isLoading}
         />
         <KeyMetricCard
           title="Custo no Mês"
           value={formatCurrency(metrics.cost)}
-          subText={date ? `Em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
+          subText={date ? `Realizado em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
           Icon={Wallet}
           isLoading={isLoading}
           isNegative={true}
@@ -181,7 +188,7 @@ export default function OverviewTab() {
         <KeyMetricCard
           title="Resultado do Mês"
           value={formatCurrency(metrics.result)}
-          subText={date ? `Em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
+          subText={date ? `Realizado em ${format(date, 'MMMM', { locale: ptBR })}` : ''}
           Icon={Activity}
           isLoading={isLoading}
           isNegative={metrics.result < 0}
