@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RevenueItemDialog } from './revenue-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
-import { deleteRevenueItem } from '@/lib/actions';
+import { deleteRevenueItem, receiveRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
 export default function RevenueTab() {
@@ -48,6 +48,12 @@ export default function RevenueTab() {
     setDeletingRevenueItem(undefined);
   };
   
+  const handleReceiveRevenueItem = (revenue: RevenueItem) => {
+    if (!user) return;
+    receiveRevenueItem(firestore, user.uid, revenue);
+    toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
+  }
+
   const userRevenues = revenues?.filter(revenue => revenue.userId === user?.uid);
   const isLoading = revenuesLoading || projectsLoading;
 
@@ -120,6 +126,9 @@ export default function RevenueTab() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {status !== 'Recebido' && (
+                              <DropdownMenuItem onClick={() => handleReceiveRevenueItem(revenue)}>Marcar como Recebido</DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
                             Excluir

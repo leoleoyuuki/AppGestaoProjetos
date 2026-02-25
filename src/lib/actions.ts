@@ -374,3 +374,27 @@ export function deleteRevenueItem(
     );
   });
 }
+
+export function receiveRevenueItem(
+  firestore: Firestore,
+  userId: string,
+  revenueItem: RevenueItem
+) {
+  const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${revenueItem.projectId}/revenueItems`, revenueItem.id);
+  const data = {
+    // When receiving, set the received amount to planned amount if it's not already set.
+    receivedAmount: revenueItem.receivedAmount > 0 ? revenueItem.receivedAmount : revenueItem.plannedAmount,
+    updatedAt: serverTimestamp(),
+  };
+
+  updateDoc(revenueItemDocRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: revenueItemDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+}
