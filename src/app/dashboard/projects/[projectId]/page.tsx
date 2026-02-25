@@ -12,12 +12,14 @@ import { Badge } from '@/components/ui/badge';
 import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
 import { formatCurrency } from '@/lib/utils';
 import type { Project, CostItem, RevenueItem, ProjectStatus } from '@/lib/types';
-import { PlusCircle, DollarSign, Wallet, Activity, Percent, TrendingUp, TrendingDown, Edit, CheckCircle } from 'lucide-react';
+import { PlusCircle, DollarSign, Wallet, Activity, Percent, TrendingUp, TrendingDown, Edit, CheckCircle, MoreHorizontal, Check } from 'lucide-react';
 import { CostItemDialog } from '@/components/dashboard/cost-item-dialog';
 import { RevenueItemDialog } from '@/components/dashboard/revenue-item-dialog';
 import { ProjectDialog } from '@/components/dashboard/project-dialog';
-import { updateProject } from '@/lib/actions';
+import { updateProject, payCostItem, deleteCostItem, receiveRevenueItem, deleteRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DeleteAlertDialog } from '@/components/ui/delete-alert-dialog';
 
 const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
   'Pendente': 'outline',
@@ -37,6 +39,11 @@ export default function ProjectDetailPage() {
   const [isCostDialogOpen, setCostDialogOpen] = useState(false);
   const [isRevenueDialogOpen, setRevenueDialogOpen] = useState(false);
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
+
+  const [editingCostItem, setEditingCostItem] = useState<CostItem | undefined>(undefined);
+  const [deletingCostItem, setDeletingCostItem] = useState<CostItem | undefined>(undefined);
+  const [editingRevenueItem, setEditingRevenueItem] = useState<RevenueItem | undefined>(undefined);
+  const [deletingRevenueItem, setDeletingRevenueItem] = useState<RevenueItem | undefined>(undefined);
 
   const projectRef = useMemoFirebase(() => {
     if (!user || !firestore || !projectId) return null;
@@ -58,6 +65,7 @@ export default function ProjectDetailPage() {
 
   const isLoading = projectLoading || costsLoading || revenuesLoading;
 
+  // --- Action Handlers ---
   const handleCompleteProject = () => {
     if (!user || !firestore || !project) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível concluir o projeto.' });
@@ -66,6 +74,74 @@ export default function ProjectDetailPage() {
     updateProject(firestore, user.uid, project.id, { status: 'Concluído' });
     toast({ title: 'Sucesso!', description: 'Projeto marcado como concluído.' });
   };
+
+  const openCostDialogForEdit = (cost: CostItem) => {
+    setEditingCostItem(cost);
+    setCostDialogOpen(true);
+  }
+  const openCostDialogForCreate = () => {
+      setEditingCostItem(undefined);
+      setCostDialogOpen(true);
+  }
+  const handlePayCostItem = (cost: CostItem) => {
+      if (!user || !firestore) return;
+      payCostItem(firestore, user.uid, cost);
+      toast({ title: 'Sucesso!', description: 'Conta marcada como paga.' });
+  }
+  const handleDeleteCostConfirm = () => {
+      if (!deletingCostItem || !user || !firestore) return;
+      deleteCostItem(firestore, user.uid, deletingCostItem);
+      toast({ title: 'Sucesso', description: 'Custo excluído.' });
+      setDeletingCostItem(undefined);
+  };
+
+  const openRevenueDialogForEdit = (revenue: RevenueItem) => {
+      setEditingRevenueItem(revenue);
+      setRevenueDialogOpen(true);
+  }
+  const openRevenueDialogForCreate = () => {
+      setEditingRevenueItem(undefined);
+      setRevenueDialogOpen(true);
+  }
+  const handleReceiveRevenueItem = (revenue: RevenueItem) => {
+      if (!user || !firestore) return;
+      receiveRevenueItem(firestore, user.uid, revenue);
+      toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
+  }
+  const handleDeleteRevenueConfirm = () => {
+      if (!deletingRevenueItem || !user || !firestore) return;
+      deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
+      toast({ title: 'Sucesso', description: 'Receita excluída.' });
+      setDeletingRevenueItem(undefined);
+  };
+
+  // --- Status Logic ---
+  const getCostStatus = (cost: CostItem): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
+    const status = cost.status || (cost.actualAmount > 0 ? 'Pago' : 'Pendente');
+    if (status === 'Pago') {
+        return { label: 'Pago', variant: 'secondary' };
+    }
+    const transactionDate = new Date(cost.transactionDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    if (transactionDate < today) {
+        return { label: 'Atrasado', variant: 'destructive' };
+    }
+    return { label: 'Pendente', variant: 'default' };
+  }
+
+  const getRevenueStatus = (revenue: RevenueItem): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
+    if (revenue.receivedAmount > 0) {
+        return { label: 'Recebido', variant: 'secondary' };
+    }
+    const transactionDate = new Date(revenue.transactionDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    if (transactionDate < today) {
+        return { label: 'Atrasado', variant: 'destructive' };
+    }
+    return { label: 'Pendente', variant: 'default' };
+  }
 
   const actualTotalRevenue = revenues?.reduce((acc, item) => acc + item.receivedAmount, 0) || 0;
   const actualTotalCost = costs?.reduce((acc, item) => acc + item.actualAmount, 0) || 0;
@@ -126,7 +202,7 @@ export default function ProjectDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Receitas do Projeto</CardTitle>
-          <Button size="sm" onClick={() => setRevenueDialogOpen(true)}>
+          <Button size="sm" onClick={openRevenueDialogForCreate}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Receita
           </Button>
@@ -139,17 +215,50 @@ export default function ProjectDetailPage() {
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Previsto</TableHead>
                 <TableHead className="text-right">Recebido</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {revenues?.map(r => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.name}</TableCell>
-                  <TableCell><Badge variant={r.receivedAmount > 0 ? 'secondary' : 'default'}>{r.receivedAmount > 0 ? 'Recebido' : 'Pendente'}</Badge></TableCell>
-                  <TableCell className="text-right">{formatCurrency(r.plannedAmount)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(r.receivedAmount)}</TableCell>
-                </TableRow>
-              ))}
+              {revenues?.map(r => {
+                const { label, variant } = getRevenueStatus(r);
+                const isPaid = label === 'Recebido';
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.name}</TableCell>
+                    <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
+                    <TableCell className="text-right">{formatCurrency(r.plannedAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(r.receivedAmount)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {!isPaid && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => handleReceiveRevenueItem(r)}
+                          >
+                            <Check className="mr-1 h-4 w-4" />
+                            Receber
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openRevenueDialogForEdit(r)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(r)}>
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>
@@ -158,7 +267,7 @@ export default function ProjectDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Custos do Projeto</CardTitle>
-          <Button size="sm" onClick={() => setCostDialogOpen(true)}>
+          <Button size="sm" onClick={openCostDialogForCreate}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Adicionar Custo
           </Button>
@@ -169,39 +278,80 @@ export default function ProjectDetailPage() {
               <TableRow>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Previsto</TableHead>
                 <TableHead className="text-right">Real</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {costs?.map(c => (
-                 <TableRow key={c.id}>
-                  <TableCell>{c.name}</TableCell>
-                  <TableCell><Badge variant="outline">{c.category}</Badge></TableCell>
-                  <TableCell className="text-right">{formatCurrency(c.plannedAmount)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(c.actualAmount)}</TableCell>
-                </TableRow>
-              ))}
+              {costs?.map(c => {
+                 const { label, variant } = getCostStatus(c);
+                 const isPaid = label === 'Pago';
+                 return (
+                   <TableRow key={c.id}>
+                    <TableCell>{c.name}</TableCell>
+                    <TableCell><Badge variant="outline">{c.category}</Badge></TableCell>
+                    <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
+                    <TableCell className="text-right">{formatCurrency(c.plannedAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(c.actualAmount)}</TableCell>
+                    <TableCell className="text-right">
+                       <div className="flex items-center justify-end gap-2">
+                        {!isPaid && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => handlePayCostItem(c)}
+                          >
+                            <Check className="mr-1 h-4 w-4" />
+                            Pagar
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openCostDialogForEdit(c)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(c)}>
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
       
-      {isCostDialogOpen && (
+      {isCostDialogOpen && project && (
          <CostItemDialog 
             isOpen={isCostDialogOpen}
-            onOpenChange={setCostDialogOpen}
+            onOpenChange={(isOpen) => {
+                setCostDialogOpen(isOpen);
+                if (!isOpen) setEditingCostItem(undefined);
+            }}
             projects={[project]}
-            costItem={undefined}
+            costItem={editingCostItem}
          />
       )}
       
-      {isRevenueDialogOpen && (
+      {isRevenueDialogOpen && project && (
          <RevenueItemDialog 
             isOpen={isRevenueDialogOpen}
-            onOpenChange={setRevenueDialogOpen}
+            onOpenChange={(isOpen) => {
+                setRevenueDialogOpen(isOpen);
+                if (!isOpen) setEditingRevenueItem(undefined);
+            }}
             projects={[project]}
-            revenueItem={undefined}
+            revenueItem={editingRevenueItem}
          />
       )}
       
@@ -212,6 +362,22 @@ export default function ProjectDetailPage() {
             project={project}
         />
       )}
+
+      {deletingCostItem && <DeleteAlertDialog
+        isOpen={!!deletingCostItem}
+        onOpenChange={(isOpen) => !isOpen && setDeletingCostItem(undefined)}
+        onConfirm={handleDeleteCostConfirm}
+        title="Tem certeza que deseja excluir este custo?"
+        description="Esta ação não pode ser desfeita e irá remover permanentemente o custo."
+      />}
+
+      {deletingRevenueItem && <DeleteAlertDialog
+        isOpen={!!deletingRevenueItem}
+        onOpenChange={(isOpen) => !isOpen && setDeletingRevenueItem(undefined)}
+        onConfirm={handleDeleteRevenueConfirm}
+        title="Tem certeza que deseja excluir esta receita?"
+        description="Esta ação não pode ser desfeita e irá remover permanentemente a receita."
+      />}
 
     </div>
   );
