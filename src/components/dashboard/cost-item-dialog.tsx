@@ -39,21 +39,18 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
   
     try {
       if (costItem) {
-        // Editing logic: installments are not created on edit
         const costData: Record<string, any> = {
           ...values,
           transactionDate: values.transactionDate!.toISOString().split('T')[0],
           userId: user.uid,
         };
   
-        // Cleanup and update
-        Object.keys(costData).forEach(key => costData[key] === undefined && delete costData[key]);
+        Object.keys(costData).forEach(key => (costData[key] === undefined || costData[key] === null) && delete costData[key]);
         if (!costData.projectId) delete costData.projectId;
         
-        updateCostItem(firestore, user.uid, costItem.id, costData);
+        await updateCostItem(firestore, user.uid, costItem.id, costData);
         toast({ title: 'Sucesso!', description: 'Conta a pagar atualizada.' });
       } else {
-        // Creation Logic
         if (values.isInstallment) {
           const { name, projectId, description, supplier, category, totalAmount, numberOfInstallments, firstInstallmentDate } = values;
   
@@ -83,7 +80,6 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
               totalInstallments: numberOfInstallments,
             };
   
-            // Cleanup and add
             const cleanData = Object.fromEntries(Object.entries(costDataForInstallment).filter(([, v]) => v !== undefined));
             if (!cleanData.projectId) delete cleanData.projectId;
 
@@ -91,7 +87,6 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
           }
           toast({ title: 'Sucesso!', description: `${numberOfInstallments} parcelas criadas.` });
         } else {
-          // Single payment creation
           const costData: Record<string, any> = {
             ...values,
             transactionDate: values.transactionDate!.toISOString().split('T')[0],
@@ -99,7 +94,6 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
             isInstallment: false
           };
           
-          // Cleanup and add
           Object.keys(costData).forEach(key => costData[key] === undefined && delete costData[key]);
           if (!costData.projectId) delete costData.projectId;
 

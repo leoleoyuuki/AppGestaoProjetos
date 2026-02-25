@@ -43,7 +43,7 @@ export default function RevenueTab() {
 
   const handleDeleteConfirm = () => {
     if (!deletingRevenueItem || !user) return;
-    deleteRevenueItem(firestore, user.uid, deletingRevenueItem.projectId, deletingRevenueItem.id);
+    deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
     toast({ title: 'Sucesso', description: 'Conta a receber excluída.' });
     setDeletingRevenueItem(undefined);
   };

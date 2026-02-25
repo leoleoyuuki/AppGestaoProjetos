@@ -9,6 +9,8 @@ import {
   setDoc,
   serverTimestamp,
   type Firestore,
+  getDoc,
+  increment,
 } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
 import type { Project, CostItem, RevenueItem, UserProfile, CostItemFormData, RevenueItemFormData } from './types';
@@ -231,9 +233,16 @@ export function addCostItem(
       })
     );
   });
+  
+  if (costItemData.projectId && costItemData.actualAmount && costItemData.actualAmount > 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, costItemData.projectId);
+    updateDoc(projectDocRef, {
+      actualTotalCost: increment(costItemData.actualAmount)
+    }).catch(error => console.error("Failed to update project total cost on add:", error));
+  }
 }
 
-export function updateCostItem(
+export async function updateCostItem(
   firestore: Firestore,
   userId: string,
   costItemId: string,
@@ -244,8 +253,45 @@ export function updateCostItem(
     ...costItemData,
     updatedAt: serverTimestamp(),
   };
-  
-  updateDoc(costItemDocRef, data).catch(error => {
+
+  try {
+    const oldCostItemSnap = await getDoc(costItemDocRef);
+    if (!oldCostItemSnap.exists()) {
+      console.warn("updateCostItem: Document to update not found.");
+      return; 
+    }
+    const oldCostItem = oldCostItemSnap.data() as CostItem;
+
+    await updateDoc(costItemDocRef, data);
+
+    const oldProjectId = oldCostItem.projectId;
+    const newProjectId = 'projectId' in costItemData ? costItemData.projectId : oldProjectId;
+
+    const oldAmount = oldCostItem.actualAmount || 0;
+    const newAmount = 'actualAmount' in costItemData && typeof costItemData.actualAmount === 'number'
+      ? costItemData.actualAmount
+      : oldAmount;
+    
+    if (oldProjectId === newProjectId) {
+      if (newAmount !== oldAmount && newProjectId) {
+        const costIncrement = newAmount - oldAmount;
+        if (costIncrement !== 0) {
+            const projectDocRef = doc(firestore, `users/${userId}/projects`, newProjectId);
+            await updateDoc(projectDocRef, { actualTotalCost: increment(costIncrement) });
+        }
+      }
+    } else {
+      // Project ID has changed
+      if (oldProjectId && oldAmount > 0) {
+        const oldProjectDocRef = doc(firestore, `users/${userId}/projects`, oldProjectId);
+        await updateDoc(oldProjectDocRef, { actualTotalCost: increment(-oldAmount) });
+      }
+      if (newProjectId && newAmount > 0) {
+        const newProjectDocRef = doc(firestore, `users/${userId}/projects`, newProjectId);
+        await updateDoc(newProjectDocRef, { actualTotalCost: increment(newAmount) });
+      }
+    }
+  } catch (error) {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
@@ -254,15 +300,16 @@ export function updateCostItem(
         requestResourceData: data,
       })
     );
-  });
+    console.error("updateCostItem failed:", error);
+  }
 }
 
 export function deleteCostItem(
   firestore: Firestore,
   userId: string,
-  costItemId: string
+  costItem: CostItem
 ) {
-  const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItemId);
+  const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItem.id);
   deleteDoc(costItemDocRef).catch(error => {
     errorEmitter.emit(
       'permission-error',
@@ -272,6 +319,13 @@ export function deleteCostItem(
       })
     );
   });
+
+  if (costItem.projectId && costItem.actualAmount && costItem.actualAmount > 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, costItem.projectId);
+    updateDoc(projectDocRef, {
+      actualTotalCost: increment(-costItem.actualAmount)
+    }).catch(error => console.error("Failed to update project total cost on delete:", error));
+  }
 }
 
 export function payCostItem(
@@ -282,7 +336,6 @@ export function payCostItem(
   const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItem.id);
   const data = {
     status: 'Pago' as const,
-    // When paying, set the actual amount to planned amount if it's not already set.
     actualAmount: costItem.actualAmount > 0 ? costItem.actualAmount : costItem.plannedAmount,
     updatedAt: serverTimestamp(),
   };
@@ -298,7 +351,14 @@ export function payCostItem(
     );
   });
 
-  // If recurring, create the next one
+  const costIncrement = data.actualAmount - (costItem.actualAmount || 0);
+  if (costItem.projectId && costIncrement !== 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, costItem.projectId);
+    updateDoc(projectDocRef, {
+      actualTotalCost: increment(costIncrement)
+    }).catch(error => console.error("Failed to update project total cost on pay:", error));
+  }
+
   if (costItem.isRecurring && costItem.frequency === 'monthly') {
     const originalDate = new Date(`${costItem.transactionDate}T00:00:00`);
     const nextDate = addMonths(originalDate, 1);
@@ -310,15 +370,13 @@ export function payCostItem(
       status: 'Pendente' as const,
       actualAmount: 0,
       transactionDate: nextDate.toISOString().split('T')[0],
-      isInstallment: false, // A recurring item is not an installment
-      installmentNumber: undefined, // Explicitly set to undefined to be removed
-      totalInstallments: undefined, // Explicitly set to undefined to be removed
+      isInstallment: false,
+      installmentNumber: undefined,
+      totalInstallments: undefined,
     };
     
-    // Clean up any undefined optional fields before saving.
     const cleanData = Object.fromEntries(Object.entries(nextCostItemData).filter(([, v]) => v !== undefined));
     
-    // Create the next occurrence
     addCostItem(firestore, userId, cleanData as CostItemFormData);
   }
 }
@@ -351,9 +409,16 @@ export function addRevenueItem(
       })
     );
   });
+
+  if (revenueItemData.receivedAmount && revenueItemData.receivedAmount > 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, projectId);
+    updateDoc(projectDocRef, {
+      actualTotalRevenue: increment(revenueItemData.receivedAmount)
+    }).catch(error => console.error("Failed to update project total revenue on add:", error));
+  }
 }
 
-export function updateRevenueItem(
+export async function updateRevenueItem(
   firestore: Firestore,
   userId: string,
   projectId: string,
@@ -366,8 +431,29 @@ export function updateRevenueItem(
     updatedAt: serverTimestamp(),
   };
   
-  updateDoc(revenueItemDocRef, data).catch(error => {
-    errorEmitter.emit(
+  try {
+    const oldRevenueItemSnap = await getDoc(revenueItemDocRef);
+    if (!oldRevenueItemSnap.exists()) {
+      console.warn("updateRevenueItem: Document to update not found.");
+      return;
+    }
+    const oldRevenueItem = oldRevenueItemSnap.data() as RevenueItem;
+
+    await updateDoc(revenueItemDocRef, data);
+    
+    const oldAmount = oldRevenueItem.receivedAmount || 0;
+    const newAmount = 'receivedAmount' in revenueItemData && typeof revenueItemData.receivedAmount === 'number'
+      ? revenueItemData.receivedAmount
+      : oldAmount;
+
+    const revenueIncrement = newAmount - oldAmount;
+    
+    if (revenueIncrement !== 0) {
+       const projectDocRef = doc(firestore, `users/${userId}/projects`, projectId);
+       await updateDoc(projectDocRef, { actualTotalRevenue: increment(revenueIncrement) });
+    }
+  } catch (error) {
+     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: revenueItemDocRef.path,
@@ -375,16 +461,16 @@ export function updateRevenueItem(
         requestResourceData: data,
       })
     );
-  });
+    console.error("updateRevenueItem failed:", error);
+  }
 }
 
 export function deleteRevenueItem(
   firestore: Firestore,
   userId: string,
-  projectId: string,
-  revenueItemId: string
+  revenueItem: RevenueItem
 ) {
-  const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${projectId}/revenueItems`, revenueItemId);
+  const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${revenueItem.projectId}/revenueItems`, revenueItem.id);
   deleteDoc(revenueItemDocRef).catch(error => {
     errorEmitter.emit(
       'permission-error',
@@ -394,6 +480,13 @@ export function deleteRevenueItem(
       })
     );
   });
+
+  if (revenueItem.receivedAmount && revenueItem.receivedAmount > 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, revenueItem.projectId);
+    updateDoc(projectDocRef, {
+      actualTotalRevenue: increment(-revenueItem.receivedAmount)
+    }).catch(error => console.error("Failed to update project total revenue on delete:", error));
+  }
 }
 
 export function receiveRevenueItem(
@@ -403,7 +496,6 @@ export function receiveRevenueItem(
 ) {
   const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${revenueItem.projectId}/revenueItems`, revenueItem.id);
   const data = {
-    // When receiving, set the received amount to planned amount if it's not already set.
     receivedAmount: revenueItem.receivedAmount > 0 ? revenueItem.receivedAmount : revenueItem.plannedAmount,
     updatedAt: serverTimestamp(),
   };
@@ -418,4 +510,12 @@ export function receiveRevenueItem(
       })
     );
   });
+  
+  const revenueIncrement = data.receivedAmount - (revenueItem.receivedAmount || 0);
+  if (revenueIncrement !== 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, revenueItem.projectId);
+    updateDoc(projectDocRef, {
+      actualTotalRevenue: increment(revenueIncrement)
+    }).catch(error => console.error("Failed to update project total revenue on receive:", error));
+  }
 }

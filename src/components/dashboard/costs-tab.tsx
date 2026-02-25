@@ -45,7 +45,7 @@ export default function CostsTab() {
 
   const handleDeleteConfirm = () => {
     if (!deletingCostItem || !user) return;
-    deleteCostItem(firestore, user.uid, deletingCostItem.id);
+    deleteCostItem(firestore, user.uid, deletingCostItem);
     toast({ title: 'Sucesso', description: 'Conta a pagar excluída.' });
     setDeletingCostItem(undefined);
   };

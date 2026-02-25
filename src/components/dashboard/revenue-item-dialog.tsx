@@ -38,17 +38,15 @@ export function RevenueItemDialog({ revenueItem, projects, isOpen, onOpenChange 
 
     try {
       if (revenueItem) {
-        // Editing logic remains the same (no installment creation on edit)
         const revenueData = {
           ...(values as any),
           transactionDate: values.transactionDate!.toISOString().split('T')[0],
           userId: user.uid,
           paymentMethodId: 'placeholder',
         };
-        updateRevenueItem(firestore, user.uid, revenueItem.projectId, revenueItem.id, revenueData);
+        await updateRevenueItem(firestore, user.uid, revenueItem.projectId, revenueItem.id, revenueData);
         toast({ title: 'Sucesso!', description: 'Conta a receber atualizada.' });
       } else {
-        // Creation Logic
         if (values.isInstallment) {
           const { name, projectId, description, totalAmount, numberOfInstallments, firstInstallmentDate } = values;
 
