@@ -19,7 +19,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, collectionGroup } from 'firebase/firestore';
 import type { Project, CostItem, RevenueItem } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import { format, startOfMonth, endOfMonth, isWithinInterval, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -31,6 +31,7 @@ const parseLocalDate = (dateString: string) => new Date(dateString + 'T00:00:00'
 
 export default function OverviewTab() {
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [isMonthPickerOpen, setMonthPickerOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>();
 
   useEffect(() => {
@@ -133,7 +134,7 @@ export default function OverviewTab() {
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <Popover>
+          <Popover open={isMonthPickerOpen} onOpenChange={setMonthPickerOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant={'outline'}
@@ -152,11 +153,12 @@ export default function OverviewTab() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                initialFocus
+               <MonthYearPicker
+                date={date}
+                onDateChange={(newDate) => {
+                  setDate(newDate);
+                  setMonthPickerOpen(false);
+                }}
               />
             </PopoverContent>
           </Popover>
