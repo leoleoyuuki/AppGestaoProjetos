@@ -60,7 +60,7 @@ export function ProjectDialog({ project, isOpen, onOpenChange }: ProjectDialogPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{project ? 'Editar Projeto' : 'Adicionar Novo Projeto'}</DialogTitle>
           <DialogDescription>

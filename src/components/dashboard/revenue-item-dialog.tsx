@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useUser, useFirestore } from '@/firebase';
-import type { RevenueItem, RevenueItemFormData } from '@/lib/types';
+import type { RevenueItem, RevenueItemFormData, Project } from '@/lib/types';
 import { RevenueItemForm, type RevenueItemFormValues } from './revenue-item-form';
 import { addRevenueItem, updateRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -113,7 +113,7 @@ export function RevenueItemDialog({ revenueItem, projects, isOpen, onOpenChange 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{revenueItem ? 'Editar Conta a Receber' : 'Adicionar Nova Conta a Receber'}</DialogTitle>
           <DialogDescription>
