@@ -1,14 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
-import type { Project, ProjectStatus } from '@/lib/types';
+import type { Project, ProjectStatus, CostItem, RevenueItem } from '@/lib/types';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, collectionGroup } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteProject } from '@/lib/actions';
@@ -37,16 +37,53 @@ export default function ProjectsTable() {
   }, [firestore, user]);
   const { data: projects, isLoading: projectsLoading } = useCollection<Project>(projectsQuery);
 
-  const projectData = projects?.map(proj => {
-    const actualProfit = proj.actualTotalRevenue - proj.actualTotalCost;
-    const marginPercentage = proj.actualTotalRevenue > 0 ? (actualProfit / proj.actualTotalRevenue) * 100 : 0;
+  const costsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, `users/${user.uid}/costItems`));
+  }, [firestore, user]);
+  const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
 
-    return {
-      ...proj,
-      actualProfit,
-      marginPercentage,
-    };
-  });
+  const revenuesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collectionGroup(firestore, 'revenueItems'));
+  }, [firestore, user]);
+  const { data: allRevenues, isLoading: revenuesLoading } = useCollection<RevenueItem>(revenuesQuery);
+
+  const projectData = useMemo(() => {
+    if (!projects || !costs || !allRevenues || !user) return [];
+
+    const userRevenues = allRevenues.filter(r => r.userId === user.uid);
+
+    const costsByProject = costs.reduce((acc, cost) => {
+        if (cost.projectId) {
+            if (!acc[cost.projectId]) acc[cost.projectId] = 0;
+            acc[cost.projectId] += cost.actualAmount || 0;
+        }
+        return acc;
+    }, {} as Record<string, number>);
+
+    const revenuesByProject = userRevenues.reduce((acc, revenue) => {
+        if (!acc[revenue.projectId]) acc[revenue.projectId] = 0;
+        acc[revenue.projectId] += revenue.receivedAmount || 0;
+        return acc;
+    }, {} as Record<string, number>);
+
+    return projects.map(proj => {
+      const actualTotalCost = costsByProject[proj.id] || 0;
+      const actualTotalRevenue = revenuesByProject[proj.id] || 0;
+      const actualProfit = actualTotalRevenue - actualTotalCost;
+      const marginPercentage = actualTotalRevenue > 0 ? (actualProfit / actualTotalRevenue) * 100 : 0;
+
+      return {
+        ...proj,
+        actualTotalRevenue,
+        actualTotalCost,
+        actualProfit,
+        marginPercentage,
+      };
+    });
+  }, [projects, costs, allRevenues, user]);
+
 
   const handleDeleteConfirm = () => {
     if (!deletingProject || !user) return;
@@ -59,7 +96,9 @@ export default function ProjectsTable() {
     router.push(`/dashboard/projects/${projectId}`);
   };
 
-  if (projectsLoading) {
+  const isLoading = projectsLoading || costsLoading || revenuesLoading;
+
+  if (isLoading) {
     return (
         <div className="space-y-2">
             <Skeleton className="h-12 w-full" />
