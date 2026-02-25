@@ -35,17 +35,23 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
     }
 
     setIsSubmitting(true);
-    const costData = {
+    const costData: Record<string, any> = {
       ...values,
       transactionDate: values.transactionDate.toISOString().split('T')[0], // format to 'YYYY-MM-DD'
       userId: user.uid
     };
 
-    // Firestore throws an error if any field value is `undefined`.
-    // If projectId is falsy (e.g., from selecting 'None'), delete it from the object
-    // so Firestore either omits it (on create) or ignores it (on update).
+    // Firestore throws an error for `undefined` values.
+    // Clean the object of any properties that are undefined.
+    Object.keys(costData).forEach(key => {
+      if (costData[key] === undefined) {
+        delete costData[key];
+      }
+    });
+
+    // Special handling for projectId: if it's falsy (from selecting 'None'), treat it as not set.
     if (!costData.projectId) {
-      delete (costData as Partial<typeof costData>).projectId;
+        delete costData.projectId;
     }
 
 
