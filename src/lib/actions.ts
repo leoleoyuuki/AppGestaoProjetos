@@ -10,7 +10,8 @@ import {
   serverTimestamp,
   type Firestore,
 } from 'firebase/firestore';
-import type { Project, CostItem, RevenueItem, UserProfile } from './types';
+import { addMonths } from 'date-fns';
+import type { Project, CostItem, RevenueItem, UserProfile, CostItemFormData, RevenueItemFormData } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -207,8 +208,6 @@ export function deleteCostCategory(
 
 // --- CostItem Actions ---
 
-export type CostItemFormData = Omit<CostItem, 'id' | 'createdAt' | 'updatedAt'>;
-
 export function addCostItem(
   firestore: Firestore,
   userId: string,
@@ -300,10 +299,52 @@ export function payCostItem(
   });
 }
 
+export function recreateCostItemForNextMonth(
+  firestore: Firestore,
+  userId: string,
+  costItem: CostItem
+) {
+  const costItemsColRef = collection(firestore, `users/${userId}/costItems`);
+  
+  const originalDate = new Date(costItem.transactionDate + 'T00:00:00');
+  const nextDate = addMonths(originalDate, 1);
+
+  const dataToSave = {
+    // Fields to copy from original
+    name: costItem.name,
+    supplier: costItem.supplier,
+    projectId: costItem.projectId,
+    category: costItem.category,
+    plannedAmount: costItem.plannedAmount,
+    description: costItem.description,
+    isRecurring: costItem.isRecurring,
+    recurrenceFrequency: costItem.recurrenceFrequency,
+    userId: costItem.userId,
+    
+    // Fields to reset for the new month's entry
+    transactionDate: nextDate.toISOString().split('T')[0],
+    status: 'Pendente' as const,
+    actualAmount: 0,
+    
+    // New timestamps for the new document
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  addDoc(costItemsColRef, dataToSave).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: costItemsColRef.path,
+        operation: 'create',
+        requestResourceData: dataToSave,
+      })
+    );
+  });
+}
+
 
 // --- RevenueItem Actions ---
-
-export type RevenueItemFormData = Omit<RevenueItem, 'id' | 'createdAt' | 'updatedAt'>;
 
 export function addRevenueItem(
   firestore: Firestore,

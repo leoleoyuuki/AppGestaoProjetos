@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CostItemDialog } from './cost-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
-import { deleteCostItem, payCostItem } from '@/lib/actions';
+import { deleteCostItem, payCostItem, recreateCostItemForNextMonth } from '@/lib/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function CostsTab() {
@@ -57,6 +57,12 @@ export default function CostsTab() {
     toast({ title: 'Sucesso!', description: 'Conta marcada como paga.' });
   }
 
+  const handleRecreateForNextMonth = (cost: CostItem) => {
+    if (!user) return;
+    recreateCostItemForNextMonth(firestore, user.uid, cost);
+    toast({ title: 'Sucesso!', description: `Conta "${cost.name}" recriada para o próximo mês.` });
+  }
+
   const isLoading = costsLoading || projectsLoading;
 
   const openDialogForEdit = (cost: CostItem) => {
@@ -86,7 +92,7 @@ export default function CostsTab() {
   const recurringCosts = costs?.filter(cost => cost.isRecurring) || [];
   const nonRecurringCosts = costs?.filter(cost => !cost.isRecurring) || [];
   
-  const renderTable = (costList: CostItem[]) => (
+  const renderTable = (costList: CostItem[], isRecurringTab = false) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -130,6 +136,9 @@ export default function CostsTab() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {isRecurringTab && (
+                      <DropdownMenuItem onClick={() => handleRecreateForNextMonth(cost)}>Recriar p/ próximo mês</DropdownMenuItem>
+                    )}
                     {label !== 'Pago' && (
                       <DropdownMenuItem onClick={() => handlePayCostItem(cost)}>Marcar como Pago</DropdownMenuItem>
                     )}
@@ -173,7 +182,7 @@ export default function CostsTab() {
                     <CardTitle>Contas com Vencimento Único</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {renderTable(nonRecurringCosts)}
+                    {renderTable(nonRecurringCosts, false)}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -183,7 +192,7 @@ export default function CostsTab() {
                     <CardTitle>Contas Recorrentes</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {renderTable(recurringCosts)}
+                    {renderTable(recurringCosts, true)}
                 </CardContent>
             </Card>
         </TabsContent>
