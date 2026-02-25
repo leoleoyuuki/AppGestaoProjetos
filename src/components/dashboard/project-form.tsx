@@ -21,14 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,7 +29,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Project, ProjectStatus } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { Separator } from '../ui/separator';
 
 const projectStatus: ProjectStatus[] = ['Pendente', 'Em andamento', 'Instalado', 'Concluído', 'Cancelado'];
 
@@ -151,8 +143,8 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Data da Venda</FormLabel>
-                 <Dialog open={isCalendarOpen} onOpenChange={setCalendarOpen}>
-                  <DialogTrigger asChild>
+                 <Popover open={isCalendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={'outline'}
@@ -165,12 +157,8 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
-                  </DialogTrigger>
-                  <DialogContent className="w-full max-w-sm p-0 sm:w-auto">
-                    <DialogHeader className="p-4 items-center">
-                      <DialogTitle>Selecionar Data da Venda</DialogTitle>
-                    </DialogHeader>
-                    <Separator />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -181,12 +169,8 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                       }}
                       initialFocus
                     />
-                    <Separator />
-                    <DialogFooter className="p-2">
-                       <Button className="w-full" variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}

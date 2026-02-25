@@ -23,14 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Info } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -38,7 +31,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { RevenueItem, Project } from '@/lib/types';
 import { useState, useEffect } from 'react';
-import { Separator } from '../ui/separator';
 
 const revenueItemFormSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres."),
@@ -235,8 +227,8 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data da Primeira Parcela</FormLabel>
-                  <Dialog open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen}>
-                    <DialogTrigger asChild>
+                  <Popover open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={'outline'}
@@ -246,24 +238,16 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
-                    </DialogTrigger>
-                    <DialogContent className="w-auto p-0">
-                      <DialogHeader className="p-4 items-center">
-                        <DialogTitle>Data da Primeira Parcela</DialogTitle>
-                      </DialogHeader>
-                      <Separator />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={(d) => { if(d) field.onChange(d); setFirstInstallmentCalendarOpen(false); }}
                         initialFocus
                       />
-                      <Separator />
-                      <DialogFooter className="p-2">
-                        <Button className="w-full" variant="ghost" onClick={() => setFirstInstallmentCalendarOpen(false)}>Cancelar</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -302,8 +286,8 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Vencimento</FormLabel>
-                  <Dialog open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
-                    <DialogTrigger asChild>
+                  <Popover open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={'outline'}
@@ -313,24 +297,16 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
-                    </DialogTrigger>
-                    <DialogContent className="w-auto p-0">
-                      <DialogHeader className="p-4 items-center">
-                          <DialogTitle>Data de Vencimento</DialogTitle>
-                      </DialogHeader>
-                      <Separator />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={(d) => { if(d) field.onChange(d); setTransactionCalendarOpen(false);}}
                         initialFocus
                       />
-                      <Separator />
-                      <DialogFooter className="p-2">
-                          <Button className="w-full" variant="ghost" onClick={() => setTransactionCalendarOpen(false)}>Cancelar</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
