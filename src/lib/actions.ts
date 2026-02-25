@@ -303,20 +303,23 @@ export function payCostItem(
     const originalDate = new Date(`${costItem.transactionDate}T00:00:00`);
     const nextDate = addMonths(originalDate, 1);
 
-    const { id, createdAt, updatedAt, ...clonedData } = costItem;
+    const { id, createdAt, updatedAt, deviationAnalysisNote, ...clonedData } = costItem;
 
-    const nextCostItem: CostItemFormData = {
+    const nextCostItemData = {
       ...clonedData,
-      status: 'Pendente',
+      status: 'Pendente' as const,
       actualAmount: 0,
       transactionDate: nextDate.toISOString().split('T')[0],
-      isInstallment: false, 
-      installmentNumber: undefined,
-      totalInstallments: undefined,
+      isInstallment: false, // A recurring item is not an installment
+      installmentNumber: undefined, // Explicitly set to undefined to be removed
+      totalInstallments: undefined, // Explicitly set to undefined to be removed
     };
     
+    // Clean up any undefined optional fields before saving.
+    const cleanData = Object.fromEntries(Object.entries(nextCostItemData).filter(([, v]) => v !== undefined));
+    
     // Create the next occurrence
-    addCostItem(firestore, userId, nextCostItem);
+    addCostItem(firestore, userId, cleanData as CostItemFormData);
   }
 }
 
