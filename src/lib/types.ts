@@ -51,8 +51,6 @@ export interface CostItem extends DocumentData {
     status: CostItemStatus;
     transactionDate: string;
     description?: string;
-    isRecurring: boolean;
-    recurrenceFrequency?: string;
     deviationAnalysisNote?: string;
     createdAt: Timestamp | string;
     updatedAt: Timestamp | string;
@@ -107,5 +105,6 @@ export interface MonthlyIOData {
     saidas: number;
 }
 
-export type CostItemFormData = Omit<CostItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type CostItemFormData = Omit<CostItem, 'id' | 'createdAt' | 'updatedAt' | 'deviationAnalysisNote'>;
 export type RevenueItemFormData = Omit<RevenueItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type FixedCostFormData = Omit<FixedCost, 'id' | 'createdAt' | 'updatedAt'>;

@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -56,7 +55,6 @@ const costItemFormSchema = z.object({
   actualAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
   transactionDate: z.date({ required_error: 'A data é obrigatória.' }),
   description: z.string().optional(),
-  isRecurring: z.boolean().default(false),
 });
 
 export type CostItemFormValues = z.infer<typeof costItemFormSchema>;
@@ -103,7 +101,6 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
         plannedAmount: 0,
         actualAmount: 0,
         description: '',
-        isRecurring: false,
         // Use a static placeholder for SSR, will be updated in useEffect
         transactionDate: new Date(0), 
       },
@@ -323,23 +320,6 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                   <Textarea placeholder="Detalhes adicionais sobre o custo..." {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="isRecurring"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Custo Recorrente</FormLabel>
-                  <FormDescription>
-                    Marque se este custo se repete.
-                  </FormDescription>
-                </div>
               </FormItem>
             )}
           />

@@ -11,7 +11,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
-import type { Project, CostItem, RevenueItem, UserProfile, CostItemFormData, RevenueItemFormData } from './types';
+import type { Project, CostItem, RevenueItem, UserProfile, CostItemFormData, RevenueItemFormData, FixedCost, FixedCostFormData } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -299,48 +299,85 @@ export function payCostItem(
   });
 }
 
-export function recreateCostItemForNextMonth(
-  firestore: Firestore,
-  userId: string,
-  costItem: CostItem
-) {
-  const costItemsColRef = collection(firestore, `users/${userId}/costItems`);
-  
-  const originalDate = new Date(costItem.transactionDate + 'T00:00:00');
-  const nextDate = addMonths(originalDate, 1);
+// --- FixedCost Actions ---
 
-  const dataToSave = {
-    // Fields to copy from original
-    name: costItem.name,
-    supplier: costItem.supplier,
-    projectId: costItem.projectId,
-    category: costItem.category,
-    plannedAmount: costItem.plannedAmount,
-    description: costItem.description,
-    isRecurring: costItem.isRecurring,
-    recurrenceFrequency: costItem.recurrenceFrequency,
-    userId: costItem.userId,
-    
-    // Fields to reset for the new month's entry
-    transactionDate: nextDate.toISOString().split('T')[0],
-    status: 'Pendente' as const,
-    actualAmount: 0,
-    
-    // New timestamps for the new document
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
+export function addFixedCost(firestore: Firestore, userId: string, fixedCostData: FixedCostFormData) {
+    const fixedCostsColRef = collection(firestore, `users/${userId}/fixedCosts`);
+    const data = {
+        ...fixedCostData,
+        userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    };
+    addDoc(fixedCostsColRef, data).catch(error => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: fixedCostsColRef.path,
+            operation: 'create',
+            requestResourceData: data,
+        }));
+    });
+}
 
-  addDoc(costItemsColRef, dataToSave).catch(error => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: costItemsColRef.path,
-        operation: 'create',
-        requestResourceData: dataToSave,
-      })
-    );
-  });
+export function updateFixedCost(firestore: Firestore, userId: string, fixedCostId: string, fixedCostData: Partial<FixedCostFormData>) {
+    const fixedCostDocRef = doc(firestore, `users/${userId}/fixedCosts`, fixedCostId);
+    const data = {
+        ...fixedCostData,
+        updatedAt: serverTimestamp(),
+    };
+    updateDoc(fixedCostDocRef, data).catch(error => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: fixedCostDocRef.path,
+            operation: 'update',
+            requestResourceData: data,
+        }));
+    });
+}
+
+export function deleteFixedCost(firestore: Firestore, userId: string, fixedCostId: string) {
+    const fixedCostDocRef = doc(firestore, `users/${userId}/fixedCosts`, fixedCostId);
+    deleteDoc(fixedCostDocRef).catch(error => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: fixedCostDocRef.path,
+            operation: 'delete',
+        }));
+    });
+}
+
+export function generateCostItemFromFixedCost(firestore: Firestore, userId: string, fixedCost: FixedCost) {
+    const costItemsColRef = collection(firestore, `users/${userId}/costItems`);
+    const costItemData = {
+        name: fixedCost.name,
+        category: fixedCost.category,
+        plannedAmount: fixedCost.amount,
+        transactionDate: fixedCost.nextPaymentDate,
+        description: `Lançamento referente ao custo fixo: ${fixedCost.name}`,
+        userId: userId,
+        actualAmount: 0,
+        status: 'Pendente' as const,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    };
+    addDoc(costItemsColRef, costItemData).catch(error => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: costItemsColRef.path,
+            operation: 'create',
+            requestResourceData: costItemData,
+        }));
+    });
+
+    const fixedCostDocRef = doc(firestore, `users/${userId}/fixedCosts`, fixedCost.id);
+    const originalDate = new Date(`${fixedCost.nextPaymentDate}T00:00:00`);
+    const nextDate = addMonths(originalDate, 1);
+    const updatedFixedCostData = {
+        nextPaymentDate: nextDate.toISOString().split('T')[0],
+    };
+    updateDoc(fixedCostDocRef, updatedFixedCostData).catch(error => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: fixedCostDocRef.path,
+            operation: 'update',
+            requestResourceData: updatedFixedCostData,
+        }));
+    });
 }
 
 
