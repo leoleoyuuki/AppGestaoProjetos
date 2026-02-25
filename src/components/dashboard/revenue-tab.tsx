@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { PlusCircle, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Check } from 'lucide-react';
 import type { RevenueItem, Project } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, collection } from 'firebase/firestore';
@@ -54,6 +54,22 @@ export default function RevenueTab() {
     toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
   }
 
+  const getStatus = (revenue: RevenueItem): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
+    if (revenue.receivedAmount > 0) {
+        return { label: 'Recebido', variant: 'secondary' };
+    }
+    const transactionDate = new Date(revenue.transactionDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    
+    const isOverdue = transactionDate < today;
+
+    if (isOverdue) {
+        return { label: 'Atrasado', variant: 'destructive' };
+    }
+    return { label: 'Pendente', variant: 'default' };
+  }
+
   const userRevenues = revenues?.filter(revenue => revenue.userId === user?.uid);
   const isLoading = revenuesLoading || projectsLoading;
 
@@ -89,7 +105,7 @@ export default function RevenueTab() {
                 <TableHead>Status</TableHead>
                 <TableHead>Forma</TableHead>
                 <TableHead>Observação</TableHead>
-                <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -105,36 +121,47 @@ export default function RevenueTab() {
               )}
               {!isLoading && userRevenues && userRevenues.length > 0 && userRevenues.map(revenue => {
                 const project = getProjectForRevenue(revenue.projectId);
-                const status = revenue.receivedAmount > 0 ? 'Recebido' : 'Pendente';
+                const { label, variant } = getStatus(revenue);
+                const isPaid = label === 'Recebido';
                 return (
                   <TableRow key={revenue.id}>
                     <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
                     <TableCell>{project?.client || 'N/A'}</TableCell>
                     <TableCell>{revenue.name}</TableCell>
-                    <TableCell>{new Date(revenue.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>{new Date(revenue.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
                     <TableCell>
-                      <Badge variant={status === 'Recebido' ? 'secondary' : 'default'}>{status}</Badge>
+                      <Badge variant={variant}>{label}</Badge>
                     </TableCell>
                     <TableCell>N/A</TableCell>
                     <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-2">
+                        {!isPaid && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => handleReceiveRevenueItem(revenue)}
+                          >
+                            <Check className="mr-1 h-4 w-4" />
+                            Confirmar
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {status !== 'Recebido' && (
-                              <DropdownMenuItem onClick={() => handleReceiveRevenueItem(revenue)}>Marcar como Recebido</DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
