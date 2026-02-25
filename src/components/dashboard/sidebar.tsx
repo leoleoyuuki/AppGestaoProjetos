@@ -135,7 +135,7 @@ export default function AppSidebar() {
       <SidebarFooter className="mt-auto p-2">
          <Card className="relative overflow-hidden bg-primary text-primary-foreground">
             {downloadAppImage && (
-              <Image src={downloadAppImage.imageUrl} alt="Download App background" fill objectFit="cover" className="opacity-20" />
+              <Image src={downloadAppImage.imageUrl} alt="Download App background" fill objectFit="cover" className="opacity-20 group-data-[state=collapsed]:hidden" />
             )}
             <CardContent className="relative z-10 p-3 text-center">
                  <div className="mb-2 mt-1 rounded-full bg-white/30 size-8 mx-auto flex items-center justify-center">
@@ -143,9 +143,11 @@ export default function AppSidebar() {
                         <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.6 12.54L12.82 16.32C12.44 16.7 11.8 16.7 11.42 16.32L7.4 12.3C7.02 11.92 7.16 11.26 7.68 11.12L11.5 10.02C11.78 9.94 12.06 10.04 12.24 10.26L13.6 11.98L15.54 9.18C15.86 8.72 16.5 8.84 16.66 9.34L17.44 11.8C17.56 12.2 17.28 12.62 16.82 12.66L16.6 12.54Z" fill="currentColor"/>
                     </svg>
                  </div>
-                <h3 className="font-semibold text-sm">Download our Mobile App</h3>
-                <p className="text-xs text-primary-foreground/80 mb-3">Get easy in another way</p>
-                <Button variant="secondary" size="sm" className="w-full text-primary">Download</Button>
+                <div className="group-data-[state=collapsed]:hidden">
+                  <h3 className="font-semibold text-sm">Download our Mobile App</h3>
+                  <p className="text-xs text-primary-foreground/80 mb-3">Get easy in another way</p>
+                  <Button variant="secondary" size="sm" className="w-full text-primary">Download</Button>
+                </div>
             </CardContent>
          </Card>
       </SidebarFooter>
