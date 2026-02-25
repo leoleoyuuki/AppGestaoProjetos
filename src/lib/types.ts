@@ -1,3 +1,5 @@
+'use client';
+
 import type { LucideIcon } from 'lucide-react';
 import { type DocumentData, type Timestamp } from 'firebase/firestore';
 
@@ -54,6 +56,8 @@ export interface CostItem extends DocumentData {
     isInstallment: boolean;
     installmentNumber?: number;
     totalInstallments?: number;
+    isRecurring?: boolean;
+    frequency?: 'monthly' | 'annually';
     deviationAnalysisNote?: string;
     createdAt: Timestamp | string;
     updatedAt: Timestamp | string;
@@ -72,19 +76,6 @@ export interface RevenueItem extends DocumentData {
     isInstallment: boolean;
     installmentNumber?: number;
     totalInstallments?: number;
-    createdAt: Timestamp | string;
-    updatedAt: Timestamp | string;
-}
-
-export interface FixedCost extends DocumentData {
-    id: string;
-    userId: string;
-    name: string;
-    category: string;
-    amount: number;
-    frequency: string;
-    nextPaymentDate: string;
-    description?: string;
     createdAt: Timestamp | string;
     updatedAt: Timestamp | string;
 }
@@ -110,4 +101,3 @@ export interface MonthlyIOData {
 
 export type CostItemFormData = Omit<CostItem, 'id' | 'createdAt' | 'updatedAt' | 'deviationAnalysisNote'>;
 export type RevenueItemFormData = Omit<RevenueItem, 'id' | 'createdAt' | 'updatedAt'>;
-export type FixedCostFormData = Omit<FixedCost, 'id' | 'createdAt' | 'updatedAt'>;

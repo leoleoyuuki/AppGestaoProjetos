@@ -31,7 +31,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, PlusCircle, Info } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Info, RefreshCw } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,6 +54,8 @@ const costItemFormSchema = z.object({
   status: z.enum(costStatus, { required_error: 'O status é obrigatório.' }),
   description: z.string().optional(),
   isInstallment: z.boolean().default(false),
+  isRecurring: z.boolean().default(false),
+  frequency: z.string().optional(),
   // Single payment fields
   plannedAmount: z.coerce.number().optional(),
   actualAmount: z.coerce.number().min(0, 'O valor deve ser positivo.').optional(),
@@ -64,6 +66,13 @@ const costItemFormSchema = z.object({
   firstInstallmentDate: z.date().optional(),
 })
 .superRefine((data, ctx) => {
+    if (data.isInstallment && data.isRecurring) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Um custo não pode ser parcelado e recorrente ao mesmo tempo.",
+            path: ["isRecurring"],
+        });
+    }
     if (data.isInstallment) {
         if (!data.totalAmount || data.totalAmount <= 0) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "O valor total deve ser maior que zero.", path: ["totalAmount"] });
@@ -74,7 +83,7 @@ const costItemFormSchema = z.object({
         if (!data.firstInstallmentDate) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A data da primeira parcela é obrigatória.", path: ["firstInstallmentDate"] });
         }
-    } else {
+    } else { // Applies to both single and recurring payments
         if (!data.plannedAmount || data.plannedAmount <= 0) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: "O valor planejado deve ser maior que zero.", path: ["plannedAmount"] });
         }
@@ -120,9 +129,16 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
   const form = useForm<CostItemFormValues>({
     resolver: zodResolver(costItemFormSchema),
     defaultValues: costItem
-    ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate), isInstallment: costItem.isInstallment || false }
+    ? { 
+        ...costItem, 
+        transactionDate: parseDateString(costItem.transactionDate), 
+        isInstallment: costItem.isInstallment || false,
+        isRecurring: costItem.isRecurring || false,
+        frequency: costItem.frequency || 'monthly'
+      }
     : {
         isInstallment: false,
+        isRecurring: false,
         name: '',
         supplier: '',
         projectId: projects.length === 1 ? projects[0].id : undefined,
@@ -135,10 +151,12 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
         numberOfInstallments: 2,
         transactionDate: new Date(0),
         firstInstallmentDate: new Date(0),
+        frequency: 'monthly',
       },
   });
 
   const isInstallment = form.watch('isInstallment');
+  const isRecurring = form.watch('isRecurring');
   const totalAmount = form.watch('totalAmount');
   const numberOfInstallments = form.watch('numberOfInstallments');
 
@@ -159,27 +177,56 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           
           {!isEditing && (
-             <FormField
-                control={form.control}
-                name="isInstallment"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox 
-                        checked={field.value} 
-                        onCheckedChange={field.onChange}
-                        disabled={isEditing}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>É uma compra parcelada?</FormLabel>
-                      <FormDescription>
-                        Marque se este custo será pago em parcelas.
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <FormField
+                    control={form.control}
+                    name="isInstallment"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 h-full">
+                        <FormControl>
+                          <Checkbox 
+                            checked={field.value} 
+                            onCheckedChange={(checked) => {
+                                field.onChange(checked);
+                                if (checked) form.setValue('isRecurring', false);
+                            }}
+                            disabled={isEditing}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>É uma compra parcelada?</FormLabel>
+                          <FormDescription>
+                            Marque se este custo será pago em parcelas.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="isRecurring"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 h-full">
+                        <FormControl>
+                          <Checkbox 
+                            checked={field.value} 
+                            onCheckedChange={(checked) => {
+                                field.onChange(checked);
+                                if (checked) form.setValue('isInstallment', false);
+                            }}
+                            disabled={isEditing}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>É um custo recorrente?</FormLabel>
+                          <FormDescription>
+                            Marque para custos que se repetem (ex: aluguel).
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+             </div>
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -193,6 +240,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                     <Input placeholder={isInstallment ? "Ex: Compra de Ferramentas" : "Ex: Licença de Software"} {...field} />
                   </FormControl>
                    {isInstallment && <FormDescription>Este será o nome base para identificar as parcelas.</FormDescription>}
+                   {isRecurring && <FormDescription>Ex: Aluguel Escritório, Assinatura Adobe</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}
@@ -353,6 +401,29 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
             </>
           ) : (
             <>
+              {isRecurring && (
+                <FormField
+                    control={form.control}
+                    name="frequency"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Frequência</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione a frequência" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="monthly">Mensal</SelectItem>
+                                    <SelectItem value="annually">Anual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="status"
@@ -383,7 +454,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                   name="plannedAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valor Planejado</FormLabel>
+                      <FormLabel>{isRecurring ? "Valor Recorrente" : "Valor Planejado"}</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
                       </FormControl>
@@ -396,7 +467,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                   name="actualAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valor Real</FormLabel>
+                      <FormLabel>Valor Real (Pago)</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
                       </FormControl>
@@ -410,7 +481,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                 name="transactionDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Data de Vencimento</FormLabel>
+                    <FormLabel>{isRecurring ? "Data do Próximo Vencimento" : "Data de Vencimento"}</FormLabel>
                     <Dialog open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
                       <DialogTrigger asChild>
                         <FormControl>

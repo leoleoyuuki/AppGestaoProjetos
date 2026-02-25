@@ -11,7 +11,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
-import type { Project, CostItem, RevenueItem, UserProfile, CostItemFormData, RevenueItemFormData, FixedCost, FixedCostFormData } from './types';
+import type { Project, CostItem, RevenueItem, UserProfile, CostItemFormData, RevenueItemFormData } from './types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -297,87 +297,27 @@ export function payCostItem(
       })
     );
   });
-}
 
-// --- FixedCost Actions ---
-
-export function addFixedCost(firestore: Firestore, userId: string, fixedCostData: FixedCostFormData) {
-    const fixedCostsColRef = collection(firestore, `users/${userId}/fixedCosts`);
-    const data = {
-        ...fixedCostData,
-        userId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    };
-    addDoc(fixedCostsColRef, data).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: fixedCostsColRef.path,
-            operation: 'create',
-            requestResourceData: data,
-        }));
-    });
-}
-
-export function updateFixedCost(firestore: Firestore, userId: string, fixedCostId: string, fixedCostData: Partial<FixedCostFormData>) {
-    const fixedCostDocRef = doc(firestore, `users/${userId}/fixedCosts`, fixedCostId);
-    const data = {
-        ...fixedCostData,
-        updatedAt: serverTimestamp(),
-    };
-    updateDoc(fixedCostDocRef, data).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: fixedCostDocRef.path,
-            operation: 'update',
-            requestResourceData: data,
-        }));
-    });
-}
-
-export function deleteFixedCost(firestore: Firestore, userId: string, fixedCostId: string) {
-    const fixedCostDocRef = doc(firestore, `users/${userId}/fixedCosts`, fixedCostId);
-    deleteDoc(fixedCostDocRef).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: fixedCostDocRef.path,
-            operation: 'delete',
-        }));
-    });
-}
-
-export function generateCostItemFromFixedCost(firestore: Firestore, userId: string, fixedCost: FixedCost) {
-    const costItemsColRef = collection(firestore, `users/${userId}/costItems`);
-    const costItemData = {
-        name: fixedCost.name,
-        category: fixedCost.category,
-        plannedAmount: fixedCost.amount,
-        transactionDate: fixedCost.nextPaymentDate,
-        description: `Lançamento referente ao custo fixo: ${fixedCost.name}`,
-        userId: userId,
-        actualAmount: 0,
-        status: 'Pendente' as const,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    };
-    addDoc(costItemsColRef, costItemData).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: costItemsColRef.path,
-            operation: 'create',
-            requestResourceData: costItemData,
-        }));
-    });
-
-    const fixedCostDocRef = doc(firestore, `users/${userId}/fixedCosts`, fixedCost.id);
-    const originalDate = new Date(`${fixedCost.nextPaymentDate}T00:00:00`);
+  // If recurring, create the next one
+  if (costItem.isRecurring && costItem.frequency === 'monthly') {
+    const originalDate = new Date(`${costItem.transactionDate}T00:00:00`);
     const nextDate = addMonths(originalDate, 1);
-    const updatedFixedCostData = {
-        nextPaymentDate: nextDate.toISOString().split('T')[0],
+
+    const { id, createdAt, updatedAt, ...clonedData } = costItem;
+
+    const nextCostItem: CostItemFormData = {
+      ...clonedData,
+      status: 'Pendente',
+      actualAmount: 0,
+      transactionDate: nextDate.toISOString().split('T')[0],
+      isInstallment: false, 
+      installmentNumber: undefined,
+      totalInstallments: undefined,
     };
-    updateDoc(fixedCostDocRef, updatedFixedCostData).catch(error => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: fixedCostDocRef.path,
-            operation: 'update',
-            requestResourceData: updatedFixedCostData,
-        }));
-    });
+    
+    // Create the next occurrence
+    addCostItem(firestore, userId, nextCostItem);
+  }
 }
 
 

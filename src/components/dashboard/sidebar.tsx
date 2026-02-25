@@ -20,7 +20,6 @@ import {
   ArrowLeftRight,
   Briefcase,
   CircleDollarSign,
-  Landmark,
 } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAuth } from '@/firebase';
@@ -37,7 +36,6 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { id: 'projects', label: 'Projetos', icon: Briefcase, href: '/dashboard/projects' },
   { id: 'costs', label: 'Contas a Pagar', icon: Wallet, href: '/dashboard/costs' },
-  { id: 'fixed-costs', label: 'Custos Fixos', icon: Landmark, href: '/dashboard/fixed-costs' },
   { id: 'revenue', label: 'Contas a Receber', icon: CircleDollarSign, href: '/dashboard/revenue' },
   { id: 'cashflow', label: 'Fluxo de Caixa', icon: ArrowLeftRight, href: '/dashboard/cashflow' },
   { id: 'reports', label: 'Relatórios', icon: BarChart3, href: '/dashboard/reports' },
@@ -134,10 +132,12 @@ export default function AppSidebar() {
 
       </SidebarContent>
       <SidebarFooter className="mt-auto p-2">
-         <Card className="relative overflow-hidden bg-primary text-primary-foreground">
-            {downloadAppImage && (
-              <Image src={downloadAppImage.imageUrl} alt="Download App background" fill objectFit="cover" className="opacity-20 group-data-[collapsible=icon]:hidden" />
-            )}
+         <Card className="relative overflow-hidden bg-primary text-primary-foreground group-data-[collapsible=icon]:p-0">
+            <div className="group-data-[collapsible=icon]:hidden">
+                {downloadAppImage && (
+                <Image src={downloadAppImage.imageUrl} alt="Download App background" fill objectFit="cover" className="opacity-20" />
+                )}
+            </div>
             <CardContent className="relative z-10 p-3 text-center">
                  <div className="mb-2 mt-1 rounded-full bg-white/30 size-8 mx-auto flex items-center justify-center">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">

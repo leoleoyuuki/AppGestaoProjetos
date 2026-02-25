@@ -193,6 +193,15 @@
           "type": "number",
           "description": "The total number of installments in the plan if 'isInstallment' is true."
         },
+        "isRecurring": {
+          "type": "boolean",
+          "description": "Indicates if this is a recurring cost."
+        },
+        "frequency": {
+          "type": "string",
+          "description": "The frequency of the recurring cost.",
+          "enum": ["monthly", "annually"]
+        },
         "deviationAnalysisNote": {
           "type": "string",
           "description": "Notes or suggestions from the deviation analysis assistant regarding this cost."
@@ -349,69 +358,6 @@
         "updatedAt"
       ]
     },
-    "FixedCost": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FixedCost",
-      "type": "object",
-      "description": "Represents a fixed recurring cost that is not directly tied to a specific project (e.g., rent, utilities).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the FixedCost entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who owns this fixed cost. (Relationship: UserProfile 1:N FixedCost)"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the fixed cost (e.g., 'Aluguel do Escritório', 'Assinatura Software X')."
-        },
-        "category": {
-          "type": "string",
-          "description": "Category of the fixed cost (e.g., 'Aluguel', 'Utilidades', 'Salários Fixos')."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The recurring amount for this fixed cost."
-        },
-        "frequency": {
-          "type": "string",
-          "description": "Frequency of the fixed cost (e.g., 'monthly', 'annually')."
-        },
-        "nextPaymentDate": {
-          "type": "string",
-          "description": "The next expected payment date for this fixed cost.",
-          "format": "date"
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed description of the fixed cost."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the fixed cost was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the fixed cost was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "category",
-        "amount",
-        "frequency",
-        "nextPaymentDate",
-        "description",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
     "CostCategory": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CostCategory",
@@ -553,26 +499,6 @@
         }
       },
       {
-        "path": "/users/{userId}/fixedCosts/{fixedCostId}",
-        "definition": {
-          "entityName": "FixedCost",
-          "schema": {
-            "$ref": "#/backend/entities/FixedCost"
-          },
-          "description": "Collection for user-specific fixed recurring costs. The 'userId' is denormalized in the path and the document for authorization independence and QAP support.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this fixed cost."
-            },
-            {
-              "name": "fixedCostId",
-              "description": "The unique identifier for the fixed cost item."
-            }
-          ]
-        }
-      },
-      {
         "path": "/users/{userId}/costCategories/{costCategoryId}",
         "definition": {
           "entityName": "CostCategory",
@@ -593,6 +519,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure for Finestra Financials is designed with a strong emphasis on Authorization Independence, Structural Segregation, and clear Access Modeling to ensure robust security rules and efficient queries. The core strategy revolves around path-based ownership for all user-specific and project-specific data.\n\nAuthorization Independence is achieved primarily through a strict hierarchical path structure starting with the user's ID (`/users/{userId}/...`). Every document related to a user or their projects is nested under this `userId` path. Furthermore, critical authorization context, specifically the `userId` of the owner, is denormalized into every document that requires ownership checks (e.g., `Project`, `PaymentMethod`, `FixedCost`, `CostItem`, `RevenueItem`). While `Project`, `PaymentMethod`, and `FixedCost` schemas already contain `userId`, `CostItem` and `RevenueItem` (which are children of `Project`) will also explicitly store the `userId` of the project owner. This denormalization means that security rules never need to perform `get()` operations on parent documents to determine access rights, making rules atomic, faster, and less prone to transaction/batching issues.\n\nStructural Segregation ensures that all documents within a given collection share the same security posture. For example, all `Project` documents under a specific `userId` path are private to that user. There are no mixed public/private documents or different access levels within the same collection. This simplifies security rules significantly, as the access logic can be consistently applied at the collection level based on the path and denormalized fields.\n\nQuery as Permission (QAP) is inherently supported by this structure. Because all user-owned data is segmented by `userId` in the path (`/users/{userId}/...`), any `list` operation performed by an authenticated user (`request.auth.uid`) can only retrieve documents from their own designated path. For instance, a user can only query `/users/their_uid/projects` and not `/users/another_uid/projects`. This ensures that security rules act as effective filters, preventing unauthorized access even on `list` operations without relying on complex and inefficient database queries within the rules themselves. Similarly, `CostItem` and `RevenueItem` are nested under the specific `projectId` within the user's path, guaranteeing that `list` queries for these items are always scoped to the correct project and owner. This radical consistency in data ownership and access modeling simplifies both rule writing and application development."
+    "reasoning": "The Firestore structure for Finestra Financials is designed with a strong emphasis on Authorization Independence, Structural Segregation, and clear Access Modeling to ensure robust security rules and efficient queries. The core strategy revolves around path-based ownership for all user-specific and project-specific data.\n\nAuthorization Independence is achieved primarily through a strict hierarchical path structure starting with the user's ID (`/users/{userId}/...`). Every document related to a user or their projects is nested under this `userId` path. Furthermore, critical authorization context, specifically the `userId` of the owner, is denormalized into every document that requires ownership checks (e.g., `Project`, `PaymentMethod`, `CostItem`, `RevenueItem`). While `Project` and `PaymentMethod` schemas already contain `userId`, `CostItem` and `RevenueItem` (which can be children of `Project`) will also explicitly store the `userId` of the project owner. This denormalization means that security rules never need to perform `get()` operations on parent documents to determine access rights, making rules atomic, faster, and less prone to transaction/batching issues.\n\nStructural Segregation ensures that all documents within a given collection share the same security posture. For example, all `Project` documents under a specific `userId` path are private to that user. There are no mixed public/private documents or different access levels within the same collection. This simplifies security rules significantly, as the access logic can be consistently applied at the collection level based on the path and denormalized fields.\n\nQuery as Permission (QAP) is inherently supported by this structure. Because all user-owned data is segmented by `userId` in the path (`/users/{userId}/...`), any `list` operation performed by an authenticated user (`request.auth.uid`) can only retrieve documents from their own designated path. For instance, a user can only query `/users/their_uid/projects` and not `/users/another_uid/projects`. This ensures that security rules act as effective filters, preventing unauthorized access even on `list` operations without relying on complex and inefficient database queries within the rules themselves. Similarly, `CostItem` and `RevenueItem` are nested under the specific `projectId` within the user's path, guaranteeing that `list` queries for these items are always scoped to the correct project and owner. This radical consistency in data ownership and access modeling simplifies both rule writing and application development."
   }
 }

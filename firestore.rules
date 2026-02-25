@@ -49,12 +49,6 @@ service cloud.firestore {
         allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
       }
 
-      // --- Fixed Costs Subcollection ---
-      match /fixedCosts/{fixedCostId} {
-        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-        allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
-      }
-
       // --- Cost Categories Subcollection ---
       match /costCategories/{costCategoryId} {
         allow read, list, update, delete: if request.auth != null && request.auth.uid == userId;

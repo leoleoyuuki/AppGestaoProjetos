@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { PlusCircle, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
@@ -93,26 +93,25 @@ export default function CostsTab() {
 
        <Card>
           <CardHeader>
-              <CardTitle>Contas a Pagar (Únicas e de Projetos)</CardTitle>
+              <CardTitle>Lançamentos Futuros e de Projetos</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Referência</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Projeto</TableHead>
                   <TableHead>Data de vencimento</TableHead>
                   <TableHead className="text-right">Valor (R$)</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Observação</TableHead>
                   <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={7}>
                       <div className="space-y-2">
                         <Skeleton className="h-8 w-full" />
                         <Skeleton className="h-8 w-full" />
@@ -124,13 +123,18 @@ export default function CostsTab() {
                   const { label, variant } = getStatus(cost);
                   return (
                     <TableRow key={cost.id}>
-                      <TableCell className="font-medium">{cost.supplier || '-'}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <span>{cost.name}</span>
+                          {cost.isRecurring && <Badge variant="outline" className="text-muted-foreground"><RefreshCw className="h-3 w-3 mr-1" /> Recorrente</Badge>}
+                        </div>
+                        {cost.supplier && <div className="text-xs text-muted-foreground">{cost.supplier}</div>}
+                      </TableCell>
                       <TableCell>{getProjectName(cost.projectId)}</TableCell>
                       <TableCell>{new Date(cost.transactionDate).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
                       <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
                       <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
-                      <TableCell className="truncate max-w-xs">{cost.description || '-'}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -154,7 +158,7 @@ export default function CostsTab() {
                 })}
                 {!isLoading && (!costs || costs.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
+                    <TableCell colSpan={7} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
