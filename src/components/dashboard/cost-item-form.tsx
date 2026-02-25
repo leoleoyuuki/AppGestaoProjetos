@@ -31,8 +31,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, PlusCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { CalendarIcon, PlusCircle, Info } from 'lucide-react';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { CostItem, Project, CostCategory, CostItemStatus } from '@/lib/types';
@@ -41,6 +41,7 @@ import { collection, query } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { Separator } from '../ui/separator';
 import { AddCategoryDialog } from './add-category-dialog';
+import { Checkbox } from '../ui/checkbox';
 
 
 const costStatus: CostItemStatus[] = ['Pendente', 'Pago'];
@@ -51,10 +52,36 @@ const costItemFormSchema = z.object({
   projectId: z.string().optional(),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   status: z.enum(costStatus, { required_error: 'O status é obrigatório.' }),
-  plannedAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
-  actualAmount: z.coerce.number().min(0, 'O valor deve ser positivo.'),
-  transactionDate: z.date({ required_error: 'A data é obrigatória.' }),
   description: z.string().optional(),
+  isInstallment: z.boolean().default(false),
+  // Single payment fields
+  plannedAmount: z.coerce.number().optional(),
+  actualAmount: z.coerce.number().min(0, 'O valor deve ser positivo.').optional(),
+  transactionDate: z.date().optional(),
+  // Installment fields
+  totalAmount: z.coerce.number().optional(),
+  numberOfInstallments: z.coerce.number().int().optional(),
+  firstInstallmentDate: z.date().optional(),
+})
+.superRefine((data, ctx) => {
+    if (data.isInstallment) {
+        if (!data.totalAmount || data.totalAmount <= 0) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "O valor total deve ser maior que zero.", path: ["totalAmount"] });
+        }
+        if (!data.numberOfInstallments || data.numberOfInstallments < 2) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Deve haver pelo menos 2 parcelas.", path: ["numberOfInstallments"] });
+        }
+        if (!data.firstInstallmentDate) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A data da primeira parcela é obrigatória.", path: ["firstInstallmentDate"] });
+        }
+    } else {
+        if (!data.plannedAmount || data.plannedAmount <= 0) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "O valor planejado deve ser maior que zero.", path: ["plannedAmount"] });
+        }
+        if (!data.transactionDate) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A data é obrigatória.", path: ["transactionDate"] });
+        }
+    }
 });
 
 export type CostItemFormValues = z.infer<typeof costItemFormSchema>;
@@ -80,7 +107,9 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
   const { user } = useUser();
   const firestore = useFirestore();
   const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [isCalendarOpen, setCalendarOpen] = useState(false);
+  const [isTransactionCalendarOpen, setTransactionCalendarOpen] = useState(false);
+  const [isFirstInstallmentCalendarOpen, setFirstInstallmentCalendarOpen] = useState(false);
+  const isEditing = !!costItem;
 
   const categoriesQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -91,8 +120,9 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
   const form = useForm<CostItemFormValues>({
     resolver: zodResolver(costItemFormSchema),
     defaultValues: costItem
-    ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate) }
+    ? { ...costItem, transactionDate: parseDateString(costItem.transactionDate), isInstallment: costItem.isInstallment || false }
     : {
+        isInstallment: false,
         name: '',
         supplier: '',
         projectId: projects.length === 1 ? projects[0].id : undefined,
@@ -101,34 +131,68 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
         plannedAmount: 0,
         actualAmount: 0,
         description: '',
-        // Use a static placeholder for SSR, will be updated in useEffect
-        transactionDate: new Date(0), 
+        totalAmount: 0,
+        numberOfInstallments: 2,
+        transactionDate: new Date(0),
+        firstInstallmentDate: new Date(0),
       },
   });
 
+  const isInstallment = form.watch('isInstallment');
+  const totalAmount = form.watch('totalAmount');
+  const numberOfInstallments = form.watch('numberOfInstallments');
+
+  const installmentValue = (totalAmount && numberOfInstallments) ? totalAmount / numberOfInstallments : 0;
+
   useEffect(() => {
-    // This runs only on the client, after hydration
-    if (!costItem) {
-      // For new items, set the date to today
-      form.setValue('transactionDate', new Date());
+    if (!isEditing) {
+      const today = new Date();
+      form.setValue('transactionDate', today);
+      form.setValue('firstInstallmentDate', today);
     }
-  }, [costItem, form]);
+  }, [isEditing, form]);
 
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          
+          {!isEditing && (
+             <FormField
+                control={form.control}
+                name="isInstallment"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox 
+                        checked={field.value} 
+                        onCheckedChange={field.onChange}
+                        disabled={isEditing}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>É uma compra parcelada?</FormLabel>
+                      <FormDescription>
+                        Marque se este custo será pago em parcelas.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Custo</FormLabel>
+                  <FormLabel>{isInstallment ? "Nome da Compra" : "Nome do Custo"}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Licença de Software" {...field} />
+                    <Input placeholder={isInstallment ? "Ex: Compra de Ferramentas" : "Ex: Licença de Software"} {...field} />
                   </FormControl>
+                   {isInstallment && <FormDescription>Este será o nome base para identificar as parcelas.</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}
@@ -140,7 +204,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                 <FormItem>
                   <FormLabel>Fornecedor (Opcional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Microsoft" {...field} value={field.value || ''} />
+                    <Input placeholder="Ex: Loja do Mecânico" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -212,104 +276,184 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {costStatus.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
+
+          {isInstallment ? (
+             <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="totalAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Total da Compra</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="numberOfInstallments"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número de Parcelas</FormLabel>
+                      <FormControl><Input type="number" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+               <FormItem>
+                  <FormLabel>Valor por Parcela (Aprox.)</FormLabel>
+                  <FormControl><Input type="text" value={formatCurrency(installmentValue)} readOnly disabled /></FormControl>
+                  <FormDescription className="flex items-center gap-1 text-xs">
+                    <Info className="h-3 w-3" />
+                    <span>O valor final da última parcela pode ter um ajuste de centavos.</span>
+                  </FormDescription>
               </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="plannedAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor Planejado</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="actualAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor Real</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <FormField
-            control={form.control}
-            name="transactionDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data de Vencimento</FormLabel>
-                <Dialog open={isCalendarOpen} onOpenChange={setCalendarOpen}>
-                  <DialogTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </DialogTrigger>
-                  <DialogContent className="w-auto p-0" aria-describedby={undefined}>
-                    <DialogHeader className="p-4 items-center">
-                      <DialogTitle>Selecionar Data de Vencimento</DialogTitle>
-                    </DialogHeader>
-                    <Separator />
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={(date) => {
-                        if(!date) return;
-                        field.onChange(date);
-                        setCalendarOpen(false);
-                      }}
-                      initialFocus
-                    />
-                    <Separator />
-                    <DialogFooter className="p-2">
-                      <Button className="w-full" variant="ghost" onClick={() => setCalendarOpen(false)}>Cancelar</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="firstInstallmentDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data da Primeira Parcela</FormLabel>
+                    <Dialog open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen}>
+                      <DialogTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                          >
+                            {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </DialogTrigger>
+                      <DialogContent className="w-auto p-0">
+                        <DialogHeader className="p-4 items-center">
+                          <DialogTitle>Data da Primeira Parcela</DialogTitle>
+                        </DialogHeader>
+                        <Separator />
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(d) => { if(d) field.onChange(d); setFirstInstallmentCalendarOpen(false); }}
+                          initialFocus
+                        />
+                        <Separator />
+                        <DialogFooter className="p-2">
+                          <Button className="w-full" variant="ghost" onClick={() => setFirstInstallmentCalendarOpen(false)}>Cancelar</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          ) : (
+            <>
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {costStatus.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="plannedAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Planejado</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="actualAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Real</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="transactionDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Vencimento</FormLabel>
+                    <Dialog open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
+                      <DialogTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value && field.value.getTime() !== 0 ? format(field.value, 'PPP', {locale: ptBR}) : <span>Escolha uma data</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </DialogTrigger>
+                      <DialogContent className="w-auto p-0" aria-describedby={undefined}>
+                        <DialogHeader className="p-4 items-center">
+                          <DialogTitle>Selecionar Data de Vencimento</DialogTitle>
+                        </DialogHeader>
+                        <Separator />
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            if(!date) return;
+                            field.onChange(date);
+                            setTransactionCalendarOpen(false);
+                          }}
+                          initialFocus
+                        />
+                        <Separator />
+                        <DialogFooter className="p-2">
+                          <Button className="w-full" variant="ghost" onClick={() => setTransactionCalendarOpen(false)}>Cancelar</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+
           <FormField
             control={form.control}
             name="description"

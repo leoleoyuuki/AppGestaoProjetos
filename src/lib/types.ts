@@ -51,6 +51,9 @@ export interface CostItem extends DocumentData {
     status: CostItemStatus;
     transactionDate: string;
     description?: string;
+    isInstallment: boolean;
+    installmentNumber?: number;
+    totalInstallments?: number;
     deviationAnalysisNote?: string;
     createdAt: Timestamp | string;
     updatedAt: Timestamp | string;

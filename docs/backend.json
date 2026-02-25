@@ -181,13 +181,17 @@
           "type": "string",
           "description": "Detailed description of the cost."
         },
-        "isRecurring": {
+        "isInstallment": {
           "type": "boolean",
-          "description": "Indicates if this is a recurring cost."
+          "description": "Indicates if this cost item is part of a larger installment plan."
         },
-        "recurrenceFrequency": {
-          "type": "string",
-          "description": "Frequency of recurrence if 'isRecurring' is true (e.g., 'monthly', 'quarterly', 'annually')."
+        "installmentNumber": {
+          "type": "number",
+          "description": "The sequential number of this installment if 'isInstallment' is true."
+        },
+        "totalInstallments": {
+          "type": "number",
+          "description": "The total number of installments in the plan if 'isInstallment' is true."
         },
         "deviationAnalysisNote": {
           "type": "string",
@@ -212,8 +216,7 @@
         "plannedAmount",
         "actualAmount",
         "transactionDate",
-        "description",
-        "isRecurring",
+        "isInstallment",
         "createdAt",
         "updatedAt",
         "status"

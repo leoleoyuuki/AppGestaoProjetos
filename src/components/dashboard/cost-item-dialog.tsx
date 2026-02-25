@@ -14,6 +14,7 @@ import { CostItemForm, type CostItemFormValues } from './cost-item-form';
 import { addCostItem, updateCostItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { CostItemFormData } from '@/lib/types';
+import { addMonths } from 'date-fns';
 
 interface CostItemDialogProps {
   costItem?: CostItem;
@@ -33,35 +34,78 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
       return;
     }
-
+  
     setIsSubmitting(true);
-    const costData: Record<string, any> = {
-      ...values,
-      transactionDate: values.transactionDate.toISOString().split('T')[0], // format to 'YYYY-MM-DD'
-      userId: user.uid
-    };
-
-    // Firestore throws an error for `undefined` values.
-    // Clean the object of any properties that are undefined.
-    Object.keys(costData).forEach(key => {
-      if (costData[key] === undefined) {
-        delete costData[key];
-      }
-    });
-
-    // Special handling for projectId: if it's falsy (from selecting 'None'), treat it as not set.
-    if (!costData.projectId) {
-        delete costData.projectId;
-    }
-
-
+  
     try {
       if (costItem) {
+        // Editing logic: installments are not created on edit
+        const costData: Record<string, any> = {
+          ...values,
+          transactionDate: values.transactionDate!.toISOString().split('T')[0],
+          userId: user.uid,
+        };
+  
+        // Cleanup and update
+        Object.keys(costData).forEach(key => costData[key] === undefined && delete costData[key]);
+        if (!costData.projectId) delete costData.projectId;
+        
         updateCostItem(firestore, user.uid, costItem.id, costData);
         toast({ title: 'Sucesso!', description: 'Conta a pagar atualizada.' });
       } else {
-        addCostItem(firestore, user.uid, costData as CostItemFormData);
-        toast({ title: 'Sucesso!', description: 'Conta a pagar criada.' });
+        // Creation Logic
+        if (values.isInstallment) {
+          const { name, projectId, description, supplier, category, totalAmount, numberOfInstallments, firstInstallmentDate } = values;
+  
+          if (!totalAmount || !numberOfInstallments || !firstInstallmentDate) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Dados de parcelamento incompletos.' });
+            setIsSubmitting(false);
+            return;
+          }
+  
+          const installmentValue = parseFloat((totalAmount / numberOfInstallments).toFixed(2));
+          const remainder = parseFloat((totalAmount - (installmentValue * numberOfInstallments)).toFixed(2));
+  
+          for (let i = 0; i < numberOfInstallments; i++) {
+            const costDataForInstallment: CostItemFormData = {
+              name: `${name} - Parcela ${i + 1}/${numberOfInstallments}`,
+              projectId,
+              userId: user.uid,
+              supplier,
+              category,
+              plannedAmount: i === numberOfInstallments - 1 ? installmentValue + remainder : installmentValue,
+              actualAmount: 0,
+              status: 'Pendente',
+              transactionDate: addMonths(firstInstallmentDate, i).toISOString().split('T')[0],
+              description: description || '',
+              isInstallment: true,
+              installmentNumber: i + 1,
+              totalInstallments: numberOfInstallments,
+            };
+  
+            // Cleanup and add
+            const cleanData = Object.fromEntries(Object.entries(costDataForInstallment).filter(([, v]) => v !== undefined));
+            if (!cleanData.projectId) delete cleanData.projectId;
+
+            addCostItem(firestore, user.uid, cleanData as CostItemFormData);
+          }
+          toast({ title: 'Sucesso!', description: `${numberOfInstallments} parcelas criadas.` });
+        } else {
+          // Single payment creation
+          const costData: Record<string, any> = {
+            ...values,
+            transactionDate: values.transactionDate!.toISOString().split('T')[0],
+            userId: user.uid,
+            isInstallment: false
+          };
+          
+          // Cleanup and add
+          Object.keys(costData).forEach(key => costData[key] === undefined && delete costData[key]);
+          if (!costData.projectId) delete costData.projectId;
+
+          addCostItem(firestore, user.uid, costData as CostItemFormData);
+          toast({ title: 'Sucesso!', description: 'Conta a pagar criada.' });
+        }
       }
       onOpenChange(false);
     } catch (error) {
