@@ -11,6 +11,7 @@ import {
   type Firestore,
   getDoc,
   increment,
+  deleteField,
 } from 'firebase/firestore';
 import { addMonths } from 'date-fns';
 import type { Project, CostItem, RevenueItem, UserProfile, CostItemFormData, RevenueItemFormData } from './types';
@@ -246,11 +247,18 @@ export async function updateCostItem(
   firestore: Firestore,
   userId: string,
   costItemId: string,
-  costItemData: Partial<CostItemFormData>
+  costItemData: Record<string, any>
 ) {
   const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItemId);
+  
+  const dataToUpdate = { ...costItemData };
+  
+  if (dataToUpdate.projectId === null) {
+    dataToUpdate.projectId = deleteField();
+  }
+
   const data = {
-    ...costItemData,
+    ...dataToUpdate,
     updatedAt: serverTimestamp(),
   };
 
@@ -265,7 +273,9 @@ export async function updateCostItem(
     await updateDoc(costItemDocRef, data);
 
     const oldProjectId = oldCostItem.projectId;
-    const newProjectId = 'projectId' in costItemData ? costItemData.projectId : oldProjectId;
+    const newProjectId = 'projectId' in costItemData && costItemData.projectId !== null
+      ? costItemData.projectId as string
+      : undefined;
 
     const oldAmount = oldCostItem.actualAmount || 0;
     const newAmount = 'actualAmount' in costItemData && typeof costItemData.actualAmount === 'number'

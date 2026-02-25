@@ -45,8 +45,18 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
           userId: user.uid,
         };
   
-        Object.keys(costData).forEach(key => (costData[key] === undefined || costData[key] === null) && delete costData[key]);
-        if (!costData.projectId) delete costData.projectId;
+        // If projectId is undefined from the form, we want to remove it from the doc.
+        // We signal this to the backend action with `null`.
+        if (costData.projectId === undefined) {
+          costData.projectId = null;
+        }
+
+        // Clean up any other fields that are strictly undefined, but keep our `projectId: null` signal
+        Object.keys(costData).forEach(key => {
+          if (costData[key] === undefined) {
+            delete costData[key];
+          }
+        });
         
         await updateCostItem(firestore, user.uid, costItem.id, costData);
         toast({ title: 'Sucesso!', description: 'Conta a pagar atualizada.' });
