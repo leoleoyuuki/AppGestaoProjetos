@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,8 @@ import { RevenueItemDialog } from './revenue-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteRevenueItem, receiveRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 export default function RevenueTab() {
   const { user } = useUser();
@@ -42,14 +44,14 @@ export default function RevenueTab() {
   };
 
   const handleDeleteConfirm = () => {
-    if (!deletingRevenueItem || !user) return;
+    if (!deletingRevenueItem || !user || !firestore) return;
     deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
     toast({ title: 'Sucesso', description: 'Conta a receber excluída.' });
     setDeletingRevenueItem(undefined);
   };
   
   const handleReceiveRevenueItem = (revenue: RevenueItem) => {
-    if (!user) return;
+    if (!user || !firestore) return;
     receiveRevenueItem(firestore, user.uid, revenue);
     toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
   }
@@ -83,6 +85,110 @@ export default function RevenueTab() {
     setRevenueItemDialogOpen(true);
   };
 
+  const { overdueRevenues, thisWeekRevenues } = useMemo(() => {
+    if (!userRevenues) return { overdueRevenues: [], thisWeekRevenues: [] };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+    const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+
+    const overdue = userRevenues.filter(revenue => {
+        const { label } = getStatus(revenue);
+        return label === 'Atrasado';
+    });
+
+    const thisWeek = userRevenues.filter(revenue => {
+        const transactionDate = new Date(revenue.transactionDate + 'T00:00:00');
+        return isWithinInterval(transactionDate, { start: weekStart, end: weekEnd });
+    });
+
+    return { overdueRevenues: overdue, thisWeekRevenues: thisWeek };
+  }, [userRevenues]);
+
+  const RevenueList = ({ data, loading }: { data: RevenueItem[] | null | undefined, loading: boolean }) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Projeto</TableHead>
+          <TableHead>Cliente</TableHead>
+          <TableHead>Parcela</TableHead>
+          <TableHead>Data de vencimento</TableHead>
+          <TableHead className="text-right">Valor (R$)</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Forma</TableHead>
+          <TableHead>Observação</TableHead>
+          <TableHead className="text-right">Ações</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {loading && (
+          <TableRow>
+            <TableCell colSpan={9}>
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+        {!loading && data && data.length > 0 && data.map(revenue => {
+          const project = getProjectForRevenue(revenue.projectId);
+          const { label, variant } = getStatus(revenue);
+          const isPaid = label === 'Recebido';
+          return (
+            <TableRow key={revenue.id}>
+              <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
+              <TableCell>{project?.client || 'N/A'}</TableCell>
+              <TableCell>{revenue.name}</TableCell>
+              <TableCell>{new Date(revenue.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
+              <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
+              <TableCell>
+                <Badge variant={variant}>{label}</Badge>
+              </TableCell>
+              <TableCell>N/A</TableCell>
+              <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-end gap-2">
+                  {!isPaid && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => handleReceiveRevenueItem(revenue)}
+                    >
+                      <Check className="mr-1 h-4 w-4" />
+                      Confirmar
+                    </Button>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+        {!loading && (!data || data.length === 0) && (
+          <TableRow>
+            <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <div className="space-y-6">
       <Card>
@@ -94,91 +200,31 @@ export default function RevenueTab() {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID Projeto</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Parcela</TableHead>
-                <TableHead>Data de vencimento</TableHead>
-                <TableHead className="text-right">Valor (R$)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Forma</TableHead>
-                <TableHead>Observação</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={9}>
-                    <div className="space-y-2">
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && userRevenues && userRevenues.length > 0 && userRevenues.map(revenue => {
-                const project = getProjectForRevenue(revenue.projectId);
-                const { label, variant } = getStatus(revenue);
-                const isPaid = label === 'Recebido';
-                return (
-                  <TableRow key={revenue.id}>
-                    <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
-                    <TableCell>{project?.client || 'N/A'}</TableCell>
-                    <TableCell>{revenue.name}</TableCell>
-                    <TableCell>{new Date(revenue.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
-                    <TableCell>
-                      <Badge variant={variant}>{label}</Badge>
-                    </TableCell>
-                    <TableCell>N/A</TableCell>
-                    <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-2">
-                        {!isPaid && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8"
-                            onClick={() => handleReceiveRevenueItem(revenue)}
-                          >
-                            <Check className="mr-1 h-4 w-4" />
-                            Confirmar
-                          </Button>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {!isLoading && (!userRevenues || userRevenues.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+            <Tabs defaultValue="all" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="all">Todos</TabsTrigger>
+                    <TabsTrigger value="overdue">Atrasados</TabsTrigger>
+                    <TabsTrigger value="this-week">Esta Semana</TabsTrigger>
+                </TabsList>
+                <TabsContent value="all" className="mt-4">
+                    <RevenueList data={userRevenues} loading={isLoading} />
+                </TabsContent>
+                <TabsContent value="overdue" className="mt-4">
+                    <RevenueList data={overdueRevenues} loading={isLoading} />
+                </TabsContent>
+                <TabsContent value="this-week" className="mt-4">
+                    <RevenueList data={thisWeekRevenues} loading={isLoading} />
+                </TabsContent>
+            </Tabs>
         </CardContent>
       </Card>
       {isRevenueItemDialogOpen && projects && (
          <RevenueItemDialog 
             isOpen={isRevenueItemDialogOpen}
-            onOpenChange={setRevenueItemDialogOpen}
+            onOpenChange={(isOpen) => {
+                setRevenueItemDialogOpen(isOpen);
+                if (!isOpen) setEditingRevenueItem(undefined);
+            }}
             projects={projects}
             revenueItem={editingRevenueItem}
          />
