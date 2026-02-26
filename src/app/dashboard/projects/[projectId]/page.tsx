@@ -117,13 +117,16 @@ export default function ProjectDetailPage() {
 
   // --- Status Logic ---
   const getCostStatus = (cost: CostItem): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
-    const status = cost.status || (cost.actualAmount > 0 ? 'Pago' : 'Pendente');
-    if (status === 'Pago') {
+    const isPaid = cost.status === 'Pago' || cost.actualAmount > 0;
+    if (isPaid) {
         return { label: 'Pago', variant: 'secondary' };
     }
+    
+    // It's not paid, so it's either Pending or Overdue.
     const transactionDate = new Date(cost.transactionDate + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0); 
+
     if (transactionDate < today) {
         return { label: 'Atrasado', variant: 'destructive' };
     }
