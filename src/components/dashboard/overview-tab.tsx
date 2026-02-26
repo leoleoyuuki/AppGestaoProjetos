@@ -25,12 +25,17 @@ import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '@/lib/utils';
 import MonthlyIOChart from './overview/monthly-io-chart';
 import WeeklySummary from './overview/weekly-summary';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { CostItemDialog } from './cost-item-dialog';
+import { RevenueItemDialog } from './revenue-item-dialog';
 
 // Helper to parse YYYY-MM-DD strings in the local timezone, avoiding UTC conversion issues.
 const parseLocalDate = (dateString: string) => new Date(dateString + 'T00:00:00');
 
 export default function OverviewTab() {
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [isCostDialogOpen, setCostDialogOpen] = useState(false);
+  const [isRevenueDialogOpen, setRevenueDialogOpen] = useState(false);
   const [isMonthPickerOpen, setMonthPickerOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>();
 
@@ -162,9 +167,29 @@ export default function OverviewTab() {
               />
             </PopoverContent>
           </Popover>
+
+          <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-auto">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Novo Lançamento
+                  </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setRevenueDialogOpen(true)}>
+                      <TrendingUp className="mr-2 h-4 w-4" />
+                      <span>Nova Receita</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setCostDialogOpen(true)}>
+                      <TrendingDown className="mr-2 h-4 w-4" />
+                      <span>Novo Custo</span>
+                  </DropdownMenuItem>
+              </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button onClick={() => setProjectDialogOpen(true)} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Project
+            Novo Projeto
           </Button>
         </div>
       </div>
@@ -230,6 +255,20 @@ export default function OverviewTab() {
         <ProjectList />
       </div>
       <ProjectDialog isOpen={isProjectDialogOpen} onOpenChange={setProjectDialogOpen} />
+      {projects && (
+        <>
+          <CostItemDialog 
+              isOpen={isCostDialogOpen}
+              onOpenChange={setCostDialogOpen}
+              projects={projects}
+          />
+          <RevenueItemDialog 
+              isOpen={isRevenueDialogOpen}
+              onOpenChange={setRevenueDialogOpen}
+              projects={projects}
+          />
+        </>
+      )}
     </>
   );
 }
