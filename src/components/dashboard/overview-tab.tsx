@@ -28,6 +28,7 @@ import WeeklySummary from './overview/weekly-summary';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CostItemDialog } from './cost-item-dialog';
 import { RevenueItemDialog } from './revenue-item-dialog';
+import RevenueLineChart from './overview/revenue-line-chart';
 
 // Helper to parse YYYY-MM-DD strings in the local timezone, avoiding UTC conversion issues.
 const parseLocalDate = (dateString: string) => new Date(dateString + 'T00:00:00');
@@ -243,8 +244,8 @@ export default function OverviewTab() {
           isLoading={isLoading}
         />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card>
           <CardHeader>
             <CardTitle>Entradas x Saídas (Últimos 6 meses)</CardTitle>
           </CardHeader>
@@ -252,6 +253,16 @@ export default function OverviewTab() {
             <MonthlyIOChart costs={costs} revenues={revenues} isLoading={isLoading} userId={user?.uid} />
           </CardContent>
         </Card>
+        <Card>
+            <CardHeader>
+                <CardTitle>Entradas (Últimos 6 meses)</CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+                <RevenueLineChart revenues={revenues} isLoading={isLoading} userId={user?.uid} />
+            </CardContent>
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ProjectList />
       </div>
       <ProjectDialog isOpen={isProjectDialogOpen} onOpenChange={setProjectDialogOpen} />
