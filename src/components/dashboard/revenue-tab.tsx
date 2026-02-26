@@ -74,8 +74,42 @@ export default function RevenueTab() {
     }
     return { label: 'Pendente', variant: 'default' };
   }
+  
+  const userRevenues = useMemo(() => {
+    if (!revenues || !user) return [];
+    return revenues.filter(revenue => revenue.userId === user?.uid);
+  }, [revenues, user]);
 
-  const userRevenues = revenues?.filter(revenue => revenue.userId === user?.uid);
+  const sortedRevenues = useMemo(() => {
+    if (!userRevenues) return [];
+
+    const getStatusValue = (revenue: RevenueItem) => {
+      const { label } = getStatus(revenue);
+      if (label === 'Atrasado') return 1;
+      if (label === 'Pendente') return 2;
+      return 3; // 'Recebido'
+    };
+
+    return [...userRevenues].sort((a, b) => {
+      const statusA = getStatusValue(a);
+      const statusB = getStatusValue(b);
+
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+
+      const dateA = new Date(a.transactionDate + 'T00:00:00').getTime();
+      const dateB = new Date(b.transactionDate + 'T00:00:00').getTime();
+      
+      if (statusA <= 2) { // Atrasado & Pendente
+        return dateA - dateB;
+      }
+
+      // Recebido
+      return dateB - dateA;
+    });
+  }, [userRevenues]);
+
   const isLoading = revenuesLoading || projectsLoading;
 
   const openDialogForEdit = (revenue: RevenueItem) => {
@@ -97,15 +131,16 @@ export default function RevenueTab() {
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
 
-    const overdue = userRevenues.filter(revenue => {
-        const { label } = getStatus(revenue);
-        return label === 'Atrasado';
-    });
+    const overdue = userRevenues
+      .filter(revenue => getStatus(revenue).label === 'Atrasado')
+      .sort((a,b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime());
 
-    const thisWeek = userRevenues.filter(revenue => {
+    const thisWeek = userRevenues
+      .filter(revenue => {
         const transactionDate = new Date(revenue.transactionDate + 'T00:00:00');
         return isWithinInterval(transactionDate, { start: weekStart, end: weekEnd });
-    });
+      })
+      .sort((a,b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime());
 
     return { overdueRevenues: overdue, thisWeekRevenues: thisWeek };
   }, [userRevenues]);
@@ -274,7 +309,7 @@ export default function RevenueTab() {
                     <TabsTrigger value="this-week">Esta Semana</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-4">
-                    <RevenueList data={userRevenues} loading={isLoading} />
+                    <RevenueList data={sortedRevenues} loading={isLoading} />
                 </TabsContent>
                 <TabsContent value="overdue" className="mt-4">
                     <RevenueList data={overdueRevenues} loading={isLoading} />
@@ -289,8 +324,8 @@ export default function RevenueTab() {
          <RevenueItemDialog 
             isOpen={isRevenueItemDialogOpen}
             onOpenChange={(isOpen) => {
-                setRevenueItemDialogOpen(isOpen);
-                if (!isOpen) setEditingRevenueItem(undefined);
+              if (!isOpen) setEditingRevenueItem(undefined);
+              setRevenueItemDialogOpen(isOpen);
             }}
             projects={projects}
             revenueItem={editingRevenueItem}

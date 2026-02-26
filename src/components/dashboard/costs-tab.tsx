@@ -89,6 +89,36 @@ export default function CostsTab() {
     return { label: 'Pendente', variant: 'default' };
   }
 
+  const sortedCosts = useMemo(() => {
+    if (!costs) return [];
+
+    const getStatusValue = (cost: CostItem) => {
+      const { label } = getStatus(cost);
+      if (label === 'Atrasado') return 1;
+      if (label === 'Pendente') return 2;
+      return 3; // 'Pago'
+    };
+
+    return [...costs].sort((a, b) => {
+      const statusA = getStatusValue(a);
+      const statusB = getStatusValue(b);
+
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+
+      const dateA = new Date(a.transactionDate + 'T00:00:00').getTime();
+      const dateB = new Date(b.transactionDate + 'T00:00:00').getTime();
+      
+      if (statusA <= 2) { // Atrasado & Pendente
+        return dateA - dateB;
+      }
+
+      // Pago
+      return dateB - dateA;
+    });
+  }, [costs]);
+
   const { overdueCosts, thisWeekCosts } = useMemo(() => {
     if (!costs) return { overdueCosts: [], thisWeekCosts: [] };
 
@@ -98,15 +128,16 @@ export default function CostsTab() {
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
 
-    const overdue = costs.filter(cost => {
-        const { label } = getStatus(cost);
-        return label === 'Atrasado';
-    });
+    const overdue = costs
+      .filter(cost => getStatus(cost).label === 'Atrasado')
+      .sort((a, b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime());
 
-    const thisWeek = costs.filter(cost => {
+    const thisWeek = costs
+      .filter(cost => {
         const transactionDate = new Date(cost.transactionDate + 'T00:00:00');
         return isWithinInterval(transactionDate, { start: weekStart, end: weekEnd });
-    });
+      })
+      .sort((a, b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime());
 
     return { overdueCosts: overdue, thisWeekCosts: thisWeek };
   }, [costs]);
@@ -265,7 +296,7 @@ export default function CostsTab() {
                     <TabsTrigger value="this-week">Esta Semana</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-4">
-                    <CostList data={costs} loading={isLoading} />
+                    <CostList data={sortedCosts} loading={isLoading} />
                 </TabsContent>
                 <TabsContent value="overdue" className="mt-4">
                     <CostList data={overdueCosts} loading={isLoading} />
@@ -281,8 +312,8 @@ export default function CostsTab() {
          <CostItemDialog 
             isOpen={isCostItemDialogOpen}
             onOpenChange={(isOpen) => {
-                setCostItemDialogOpen(isOpen);
                 if (!isOpen) setEditingCostItem(undefined);
+                setCostItemDialogOpen(isOpen);
             }}
             projects={projects}
             costItem={editingCostItem}
