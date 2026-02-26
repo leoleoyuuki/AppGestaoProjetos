@@ -36,20 +36,20 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b bg-background px-4 md:px-6">
       <SidebarTrigger className="md:hidden" />
-      <div className="flex-1">
+      <div className="flex-1 md:grow-0">
         <form>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search task..."
-              className="pl-9 sm:w-[300px] md:w-[200px] lg:w-[300px] bg-card border-none rounded-full"
+              placeholder="Buscar..."
+              className="pl-9 w-full md:w-[200px] lg:w-[300px] bg-card border-none rounded-full"
             />
-             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono p-1 border rounded-md">⌘ F</div>
+             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono p-1 border rounded-md hidden sm:block">⌘ F</div>
           </div>
         </form>
       </div>
-      <div className="flex items-center gap-4 md:ml-auto">
+      <div className="flex items-center gap-2 md:gap-4 md:ml-auto">
         <Button variant="ghost" size="icon" className="rounded-full">
           <Mail className="h-5 w-5" />
           <span className="sr-only">Messages</span>

@@ -14,6 +14,7 @@ import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
 import { deleteProject } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Card, CardContent } from '../ui/card';
 
 const statusVariant: { [key in ProjectStatus]: 'default' | 'secondary' | 'destructive' | 'outline' } = {
   'Pendente': 'outline',
@@ -85,9 +86,9 @@ export default function ProjectsTable() {
   }, [projects, costs, allRevenues, user]);
 
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deletingProject || !user) return;
-    deleteProject(firestore, user.uid, deletingProject.id);
+    await deleteProject(firestore, user.uid, deletingProject.id);
     toast({ title: 'Sucesso', description: 'Projeto excluído.' });
     setDeletingProject(undefined);
   };
@@ -110,7 +111,50 @@ export default function ProjectsTable() {
 
   return (
     <>
-      <Table>
+      <div className="md:hidden space-y-4">
+        {projectData?.map(proj => (
+          <Card key={proj.id} onClick={() => handleRowClick(proj.id)} className="cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="font-medium">{proj.name}</p>
+                  <p className="text-sm text-muted-foreground">{proj.client}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge variant={statusVariant[proj.status]}>{proj.status}</Badge>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingProject(proj)}>Excluir</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+              <div className="text-sm space-y-1 text-muted-foreground">
+                <div className="flex justify-between"><span>Valor Total:</span> <span className="font-medium text-foreground">{formatCurrency(proj.plannedTotalRevenue)}</span></div>
+                <div className="flex justify-between"><span>Receita Realizada:</span> <span className="font-medium text-foreground">{formatCurrency(proj.actualTotalRevenue)}</span></div>
+                <div className="flex justify-between"><span>Custos Realizados:</span> <span className="font-medium text-destructive">{formatCurrency(proj.actualTotalCost)}</span></div>
+                <div className="flex justify-between border-t mt-1 pt-1">
+                  <span className="font-semibold">Margem Real:</span> 
+                  <span className={`font-semibold ${proj.actualProfit < 0 ? 'text-destructive' : 'text-foreground'}`}>{formatCurrency(proj.actualProfit)} ({proj.marginPercentage.toFixed(1)}%)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {projectData?.length === 0 && (
+          <div className="text-center text-sm text-muted-foreground py-10">
+            <p>Nenhum projeto encontrado.</p>
+          </div>
+        )}
+      </div>
+      <Table className="hidden md:table">
         <TableHeader>
           <TableRow>
             <TableHead>Projeto</TableHead>
@@ -154,9 +198,14 @@ export default function ProjectsTable() {
               </TableCell>
             </TableRow>
           ))}
+           {projectData?.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="h-24 text-center">Nenhum projeto encontrado.</TableCell>
+              </TableRow>
+            )}
         </TableBody>
       </Table>
-      <DeleteAlertDialog
+      {deletingProject && <DeleteAlertDialog
         isOpen={!!deletingProject}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
@@ -166,7 +215,7 @@ export default function ProjectsTable() {
         onConfirm={handleDeleteConfirm}
         title="Tem certeza que deseja excluir este projeto?"
         description="Esta ação não pode ser desfeita. Todos os dados associados a este projeto serão perdidos."
-      />
+      />}
     </>
   );
 }

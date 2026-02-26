@@ -138,10 +138,10 @@ export default function CashflowTab() {
           <CardDescription>Visão consolidada de todas as entradas e saídas.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 mb-4">
              <Popover>
               <PopoverTrigger asChild>
-                <Button variant={"outline"} className="w-[280px] justify-start text-left font-normal">
+                <Button variant={"outline"} className="w-full md:w-[280px] justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   <span>Filtrar por data</span>
                 </Button>
@@ -151,7 +151,7 @@ export default function CashflowTab() {
               </PopoverContent>
             </Popover>
             <Select>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -163,7 +163,7 @@ export default function CashflowTab() {
               </SelectContent>
             </Select>
             <Select>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Projeto" />
               </SelectTrigger>
               <SelectContent>
@@ -171,9 +171,37 @@ export default function CashflowTab() {
                  {projects?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
-             <Button variant="outline"><Filter className="mr-2 h-4 w-4"/> Aplicar Filtros</Button>
+             <Button variant="outline" className="w-full md:w-auto"><Filter className="mr-2 h-4 w-4"/> Aplicar Filtros</Button>
           </div>
-          <Table>
+          {/* Mobile View */}
+          <div className="md:hidden space-y-4">
+            {isLoading && Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+            {!isLoading && transactions.map(transaction => (
+                <Card key={transaction.id}>
+                    <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                            <p className="font-medium">{transaction.description}</p>
+                            <Badge variant={transaction.type === 'Receita' ? 'secondary' : 'destructive'} className="gap-1 whitespace-nowrap">
+                              {transaction.type === 'Receita' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                              {transaction.type}
+                            </Badge>
+                        </div>
+                        <div className="flex justify-between items-end mt-2">
+                            <div className="text-sm text-muted-foreground">
+                                <p>{new Date(transaction.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                                <p>{transaction.project}</p>
+                            </div>
+                            <p className={`font-semibold ${transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatCurrency(transaction.amount)}
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+             {!isLoading && transactions.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">Nenhuma transação encontrada.</p>}
+          </div>
+          {/* Desktop View */}
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
@@ -196,7 +224,7 @@ export default function CashflowTab() {
               )}
               {!isLoading && transactions.map(transaction => (
                 <TableRow key={transaction.id}>
-                  <TableCell>{new Date(transaction.date).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>{new Date(transaction.date + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell className="font-medium">{transaction.description}</TableCell>
                   <TableCell>
                     <Badge variant={transaction.type === 'Receita' ? 'secondary' : 'destructive'} className="gap-1">
@@ -210,6 +238,7 @@ export default function CashflowTab() {
                   </TableCell>
                 </TableRow>
               ))}
+               {!isLoading && transactions.length === 0 && <TableRow><TableCell colSpan={5} className="h-24 text-center">Nenhuma transação encontrada.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { PlusCircle, MoreHorizontal, RefreshCw } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, RefreshCw, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
@@ -45,16 +45,16 @@ export default function CostsTab() {
     return projects?.find(p => p.id === projectId)?.name || 'Geral';
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deletingCostItem || !user || !firestore) return;
-    deleteCostItem(firestore, user.uid, deletingCostItem);
+    await deleteCostItem(firestore, user.uid, deletingCostItem);
     toast({ title: 'Sucesso', description: 'Conta a pagar excluída.' });
     setDeletingCostItem(undefined);
   };
   
-  const handlePayCostItem = (cost: CostItem) => {
+  const handlePayCostItem = async (cost: CostItem) => {
     if (!user || !firestore) return;
-    payCostItem(firestore, user.uid, cost);
+    await payCostItem(firestore, user.uid, cost);
     toast({ title: 'Sucesso!', description: 'Conta marcada como paga.' });
   }
 
@@ -109,73 +109,135 @@ export default function CostsTab() {
   }, [costs]);
 
   const CostList = ({ data, loading }: { data: CostItem[] | null, loading: boolean }) => (
-      <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Projeto</TableHead>
-              <TableHead>Data de vencimento</TableHead>
-              <TableHead className="text-right">Valor (R$)</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <div className="space-y-2">
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
+      <>
+        {/* Mobile View */}
+        <div className="md:hidden space-y-4">
+            {loading && Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
             {!loading && data && data.map(cost => {
               const { label, variant } = getStatus(cost);
+              const isPaid = label === 'Pago';
               return (
-                <TableRow key={cost.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <span>{cost.name}</span>
-                      {cost.isRecurring && <Badge variant="outline" className="text-muted-foreground"><RefreshCw className="h-3 w-3 mr-1" /> Recorrente</Badge>}
-                    </div>
-                    {cost.supplier && <div className="text-xs text-muted-foreground">{cost.supplier}</div>}
-                  </TableCell>
-                  <TableCell>{getProjectName(cost.projectId)}</TableCell>
-                  <TableCell>{new Date(cost.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
-                  <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
-                  <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {label !== 'Pago' && (
-                          <DropdownMenuItem onClick={() => handlePayCostItem(cost)}>Marcar como Pago</DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                <Card key={cost.id}>
+                    <CardContent className="p-4 space-y-2">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="font-medium">{cost.name}</p>
+                                <p className="text-sm text-muted-foreground">{getProjectName(cost.projectId)}</p>
+                            </div>
+                            <Badge variant={variant}>{label}</Badge>
+                        </div>
+                        {cost.isRecurring && <Badge variant="outline" className="text-muted-foreground"><RefreshCw className="h-3 w-3 mr-1" /> Recorrente</Badge>}
+                        <div className="text-sm text-muted-foreground">
+                            <p>Vencimento: {new Date(cost.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                            <p>Valor: <span className="font-medium text-foreground">{formatCurrency(cost.plannedAmount)}</span></p>
+                            <p>Categoria: <Badge variant="outline" className="mt-1">{cost.category}</Badge></p>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                             {!isPaid && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8"
+                                    onClick={() => handlePayCostItem(cost)}
+                                >
+                                    <Check className="mr-1 h-4 w-4" />
+                                    Pagar
+                                </Button>
+                            )}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {!isPaid && <DropdownMenuItem onClick={() => handlePayCostItem(cost)}>Marcar como Pago</DropdownMenuItem>}
+                                    <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
+                                        Excluir
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </CardContent>
+                </Card>
               )
             })}
-            {!loading && (!data || data.length === 0) && (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
-              </TableRow>
+             {!loading && (!data || data.length === 0) && (
+              <div className="text-center text-sm text-muted-foreground py-10">
+                <p>Nenhuma conta a pagar encontrada.</p>
+              </div>
             )}
-          </TableBody>
-        </Table>
+        </div>
+        {/* Desktop View */}
+        <Table className="hidden md:table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Projeto</TableHead>
+                <TableHead>Data de vencimento</TableHead>
+                <TableHead className="text-right">Valor (R$)</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-8 w-full" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && data && data.map(cost => {
+                const { label, variant } = getStatus(cost);
+                return (
+                  <TableRow key={cost.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <span>{cost.name}</span>
+                        {cost.isRecurring && <Badge variant="outline" className="text-muted-foreground"><RefreshCw className="h-3 w-3 mr-1" /> Recorrente</Badge>}
+                      </div>
+                      {cost.supplier && <div className="text-xs text-muted-foreground">{cost.supplier}</div>}
+                    </TableCell>
+                    <TableCell>{getProjectName(cost.projectId)}</TableCell>
+                    <TableCell>{new Date(cost.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
+                    <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
+                    <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {label !== 'Pago' && (
+                            <DropdownMenuItem onClick={() => handlePayCostItem(cost)}>Marcar como Pago</DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+              {!loading && (!data || data.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+      </>
   );
 
   return (
@@ -194,7 +256,7 @@ export default function CostsTab() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="all" className="w-full">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="all">Todos</TabsTrigger>
                     <TabsTrigger value="overdue">Atrasados</TabsTrigger>
                     <TabsTrigger value="this-week">Esta Semana</TabsTrigger>

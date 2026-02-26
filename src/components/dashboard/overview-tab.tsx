@@ -133,14 +133,14 @@ export default function OverviewTab() {
             Visão geral financeira do seu negócio.
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Popover open={isMonthPickerOpen} onOpenChange={setMonthPickerOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant={'outline'}
                 disabled={!date}
                 className={cn(
-                  'w-[240px] justify-start text-left font-normal',
+                  'w-full justify-start text-left font-normal',
                   !date && 'text-muted-foreground'
                 )}
               >
@@ -162,7 +162,7 @@ export default function OverviewTab() {
               />
             </PopoverContent>
           </Popover>
-          <Button onClick={() => setProjectDialogOpen(true)}>
+          <Button onClick={() => setProjectDialogOpen(true)} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Project
           </Button>

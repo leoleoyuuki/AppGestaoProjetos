@@ -66,12 +66,12 @@ export default function ProjectDetailPage() {
   const isLoading = projectLoading || costsLoading || revenuesLoading;
 
   // --- Action Handlers ---
-  const handleCompleteProject = () => {
+  const handleCompleteProject = async () => {
     if (!user || !firestore || !project) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível concluir o projeto.' });
       return;
     }
-    updateProject(firestore, user.uid, project.id, { status: 'Concluído' });
+    await updateProject(firestore, user.uid, project.id, { status: 'Concluído' });
     toast({ title: 'Sucesso!', description: 'Projeto marcado como concluído.' });
   };
 
@@ -83,14 +83,14 @@ export default function ProjectDetailPage() {
       setEditingCostItem(undefined);
       setCostDialogOpen(true);
   }
-  const handlePayCostItem = (cost: CostItem) => {
+  const handlePayCostItem = async (cost: CostItem) => {
       if (!user || !firestore) return;
-      payCostItem(firestore, user.uid, cost);
+      await payCostItem(firestore, user.uid, cost);
       toast({ title: 'Sucesso!', description: 'Conta marcada como paga.' });
   }
-  const handleDeleteCostConfirm = () => {
+  const handleDeleteCostConfirm = async () => {
       if (!deletingCostItem || !user || !firestore) return;
-      deleteCostItem(firestore, user.uid, deletingCostItem);
+      await deleteCostItem(firestore, user.uid, deletingCostItem);
       toast({ title: 'Sucesso', description: 'Custo excluído.' });
       setDeletingCostItem(undefined);
   };
@@ -103,14 +103,14 @@ export default function ProjectDetailPage() {
       setEditingRevenueItem(undefined);
       setRevenueDialogOpen(true);
   }
-  const handleReceiveRevenueItem = (revenue: RevenueItem) => {
+  const handleReceiveRevenueItem = async (revenue: RevenueItem) => {
       if (!user || !firestore) return;
-      receiveRevenueItem(firestore, user.uid, revenue);
+      await receiveRevenueItem(firestore, user.uid, revenue);
       toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
   }
-  const handleDeleteRevenueConfirm = () => {
+  const handleDeleteRevenueConfirm = async () => {
       if (!deletingRevenueItem || !user || !firestore) return;
-      deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
+      await deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
       toast({ title: 'Sucesso', description: 'Receita excluída.' });
       setDeletingRevenueItem(undefined);
   };
@@ -170,13 +170,13 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
         <div>
           <h1 className="text-3xl font-bold">{project.name}</h1>
           <p className="text-muted-foreground">Cliente: {project.client}</p>
           <Badge variant={statusVariant[project.status]} className="mt-2">{project.status}</Badge>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {project.status !== 'Concluído' && project.status !== 'Cancelado' && (
                 <Button size="sm" variant="secondary" onClick={handleCompleteProject}>
                     <CheckCircle className="mr-2 h-4 w-4" />
@@ -208,7 +208,54 @@ export default function ProjectDetailPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="md:hidden space-y-4">
+            {revenues?.map(r => {
+                const { label, variant } = getRevenueStatus(r);
+                const isPaid = label === 'Recebido';
+                return (
+                  <Card key={r.id}>
+                    <CardContent className="p-4 space-y-2">
+                       <div className="flex justify-between items-start">
+                        <p className="font-semibold">{r.name}</p>
+                        <Badge variant={variant}>{label}</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>Previsto: <span className="font-medium text-foreground">{formatCurrency(r.plannedAmount)}</span></p>
+                        <p>Recebido: <span className="font-medium text-foreground">{formatCurrency(r.receivedAmount)}</span></p>
+                      </div>
+                       <div className="flex items-center justify-end gap-2 pt-2">
+                        {!isPaid && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => handleReceiveRevenueItem(r)}
+                          >
+                            <Check className="mr-1 h-4 w-4" />
+                            Receber
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openRevenueDialogForEdit(r)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(r)}>
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+            })}
+             {revenues?.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma receita encontrada.</p>}
+          </div>
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
@@ -259,6 +306,7 @@ export default function ProjectDetailPage() {
                   </TableRow>
                 )
               })}
+               {revenues?.length === 0 && <TableRow><TableCell colSpan={5} className="h-24 text-center">Nenhuma receita encontrada.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
@@ -273,7 +321,52 @@ export default function ProjectDetailPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <Table>
+           <div className="md:hidden space-y-4">
+              {costs?.map(c => {
+                 const { label, variant } = getCostStatus(c);
+                 const isPaid = label === 'Pago';
+                 return (
+                   <Card key={c.id}>
+                      <CardContent className="p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                              <div>
+                                  <p className="font-semibold">{c.name}</p>
+                                  <Badge variant="outline">{c.category}</Badge>
+                              </div>
+                              <Badge variant={variant}>{label}</Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                              <p>Previsto: <span className="font-medium text-foreground">{formatCurrency(c.plannedAmount)}</span></p>
+                              <p>Real: <span className="font-medium text-foreground">{formatCurrency(c.actualAmount)}</span></p>
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-2">
+                              {!isPaid && (
+                                  <Button variant="outline" size="sm" className="h-8" onClick={() => handlePayCostItem(c)}>
+                                      <Check className="mr-1 h-4 w-4" />
+                                      Pagar
+                                  </Button>
+                              )}
+                              <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => openCostDialogForEdit(c)}>Editar</DropdownMenuItem>
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(c)}>
+                                          Excluir
+                                      </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                              </DropdownMenu>
+                          </div>
+                      </CardContent>
+                   </Card>
+                 )
+              })}
+              {costs?.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum custo encontrado.</p>}
+           </div>
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
@@ -326,6 +419,7 @@ export default function ProjectDetailPage() {
                   </TableRow>
                 )
               })}
+              {costs?.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center">Nenhum custo encontrado.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>

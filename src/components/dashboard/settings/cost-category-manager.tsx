@@ -31,15 +31,15 @@ export function CostCategoryManager() {
       return;
     }
     setIsSubmitting(true);
-    addCostCategory(firestore, user.uid, newCategoryName.trim());
+    await addCostCategory(firestore, user.uid, newCategoryName.trim());
     toast({ title: 'Sucesso', description: `Categoria "${newCategoryName.trim()}" adicionada.` });
     setNewCategoryName('');
     setIsSubmitting(false);
   };
 
-  const handleDeleteCategory = (categoryId: string) => {
+  const handleDeleteCategory = async (categoryId: string) => {
     if (!user) return;
-    deleteCostCategory(firestore, user.uid, categoryId);
+    await deleteCostCategory(firestore, user.uid, categoryId);
     toast({ title: 'Sucesso', description: 'Categoria removida.' });
   };
 
@@ -50,7 +50,7 @@ export function CostCategoryManager() {
         <CardDescription>Gerencie suas categorias de custo personalizadas.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Input
             placeholder="Nova categoria..."
             value={newCategoryName}

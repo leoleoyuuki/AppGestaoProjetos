@@ -43,16 +43,16 @@ export default function RevenueTab() {
     return projects?.find(p => p.id === projectId);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deletingRevenueItem || !user || !firestore) return;
-    deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
+    await deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
     toast({ title: 'Sucesso', description: 'Conta a receber excluída.' });
     setDeletingRevenueItem(undefined);
   };
   
-  const handleReceiveRevenueItem = (revenue: RevenueItem) => {
+  const handleReceiveRevenueItem = async (revenue: RevenueItem) => {
     if (!user || !firestore) return;
-    receiveRevenueItem(firestore, user.uid, revenue);
+    await receiveRevenueItem(firestore, user.uid, revenue);
     toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
   }
 
@@ -108,49 +108,30 @@ export default function RevenueTab() {
   }, [userRevenues]);
 
   const RevenueList = ({ data, loading }: { data: RevenueItem[] | null | undefined, loading: boolean }) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Projeto</TableHead>
-          <TableHead>Cliente</TableHead>
-          <TableHead>Parcela</TableHead>
-          <TableHead>Data de vencimento</TableHead>
-          <TableHead className="text-right">Valor (R$)</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Forma</TableHead>
-          <TableHead>Observação</TableHead>
-          <TableHead className="text-right">Ações</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {loading && (
-          <TableRow>
-            <TableCell colSpan={9}>
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            </TableCell>
-          </TableRow>
-        )}
-        {!loading && data && data.length > 0 && data.map(revenue => {
+    <>
+      {/* Mobile View */}
+      <div className="md:hidden space-y-4">
+        {loading && Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+        {!loading && data && data.map(revenue => {
           const project = getProjectForRevenue(revenue.projectId);
           const { label, variant } = getStatus(revenue);
           const isPaid = label === 'Recebido';
           return (
-            <TableRow key={revenue.id}>
-              <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
-              <TableCell>{project?.client || 'N/A'}</TableCell>
-              <TableCell>{revenue.name}</TableCell>
-              <TableCell>{new Date(revenue.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
-              <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
-              <TableCell>
-                <Badge variant={variant}>{label}</Badge>
-              </TableCell>
-              <TableCell>N/A</TableCell>
-              <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
-              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-end gap-2">
+            <Card key={revenue.id}>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <p className="font-medium">{revenue.name}</p>
+                        <p className="text-sm text-muted-foreground">{project?.name || 'N/A'}</p>
+                    </div>
+                    <Badge variant={variant}>{label}</Badge>
+                </div>
+                 <div className="text-sm text-muted-foreground">
+                    <p>Vencimento: {new Date(revenue.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                    <p>Valor: <span className="font-medium text-foreground">{formatCurrency(revenue.plannedAmount)}</span></p>
+                    <p>Cliente: {project?.client || 'N/A'}</p>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
                   {!isPaid && (
                     <Button
                       variant="outline"
@@ -159,12 +140,12 @@ export default function RevenueTab() {
                       onClick={() => handleReceiveRevenueItem(revenue)}
                     >
                       <Check className="mr-1 h-4 w-4" />
-                      Confirmar
+                      Receber
                     </Button>
                   )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -176,32 +157,115 @@ export default function RevenueTab() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              </TableCell>
-            </TableRow>
+              </CardContent>
+            </Card>
           );
         })}
         {!loading && (!data || data.length === 0) && (
-          <TableRow>
-            <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
-          </TableRow>
+          <div className="text-center text-sm text-muted-foreground py-10">
+            <p>Nenhuma conta a receber encontrada.</p>
+          </div>
         )}
-      </TableBody>
-    </Table>
+      </div>
+      {/* Desktop View */}
+      <Table className="hidden md:table">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Projeto</TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Parcela</TableHead>
+            <TableHead>Data de vencimento</TableHead>
+            <TableHead className="text-right">Valor (R$)</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Forma</TableHead>
+            <TableHead>Observação</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading && (
+            <TableRow>
+              <TableCell colSpan={9}>
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+          {!loading && data && data.length > 0 && data.map(revenue => {
+            const project = getProjectForRevenue(revenue.projectId);
+            const { label, variant } = getStatus(revenue);
+            const isPaid = label === 'Recebido';
+            return (
+              <TableRow key={revenue.id}>
+                <TableCell className="font-medium">{project?.name || 'N/A'}</TableCell>
+                <TableCell>{project?.client || 'N/A'}</TableCell>
+                <TableCell>{revenue.name}</TableCell>
+                <TableCell>{new Date(revenue.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
+                <TableCell className="text-right">{formatCurrency(revenue.plannedAmount)}</TableCell>
+                <TableCell>
+                  <Badge variant={variant}>{label}</Badge>
+                </TableCell>
+                <TableCell>N/A</TableCell>
+                <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-2">
+                    {!isPaid && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => handleReceiveRevenueItem(revenue)}
+                      >
+                        <Check className="mr-1 h-4 w-4" />
+                        Confirmar
+                      </Button>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openDialogForEdit(revenue)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingRevenueItem(revenue)}>
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+          {!loading && (!data || data.length === 0) && (
+            <TableRow>
+              <TableCell colSpan={9} className="h-24 text-center">Nenhuma conta a receber encontrada.</TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </>
   );
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Contas a Receber</h1>
+        <Button size="sm" onClick={openDialogForCreate}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Adicionar Conta
+        </Button>
+      </div>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Contas a Receber</CardTitle>
-          <Button size="sm" onClick={openDialogForCreate}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Conta
-          </Button>
+        <CardHeader>
+          <CardTitle>Lançamentos</CardTitle>
         </CardHeader>
         <CardContent>
             <Tabs defaultValue="all" className="w-full">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="all">Todos</TabsTrigger>
                     <TabsTrigger value="overdue">Atrasados</TabsTrigger>
                     <TabsTrigger value="this-week">Esta Semana</TabsTrigger>
