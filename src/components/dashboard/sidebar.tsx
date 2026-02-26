@@ -43,7 +43,7 @@ const navItems = [
 
 const generalItems = [
     { id: 'settings', label: 'Configurações', icon: Settings, href: '/dashboard/settings' },
-    { id: 'help', label: 'Ajuda', icon: CircleHelp, href: '#' },
+    { id: 'help', label: 'Ajuda', icon: CircleHelp, href: '/dashboard/help' },
     { id: 'logout', label: 'Sair', icon: LogOut, href: '#' },
 ]
 
@@ -66,6 +66,7 @@ export default function AppSidebar() {
     if (href === '/dashboard') return pathname === href;
     // For settings, it's a specific page
     if (href.includes('settings')) return pathname === href;
+    if (href.includes('help')) return pathname === href;
     return pathname.startsWith(href) && href !== '/dashboard';
   };
 
@@ -132,25 +133,26 @@ export default function AppSidebar() {
 
       </SidebarContent>
       <SidebarFooter className="mt-auto p-2">
-         <Card className="relative overflow-hidden bg-primary text-primary-foreground group-data-[collapsible=icon]:p-0">
-            <div className="group-data-[collapsible=icon]:hidden">
-                {downloadAppImage && (
-                <Image src={downloadAppImage.imageUrl} alt="Download App background" fill objectFit="cover" className="opacity-20" />
-                )}
-            </div>
-            <CardContent className="relative z-10 p-3 text-center">
-                 <div className="mb-2 mt-1 rounded-full bg-white/30 size-8 mx-auto flex items-center justify-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.6 12.54L12.82 16.32C12.44 16.7 11.8 16.7 11.42 16.32L7.4 12.3C7.02 11.92 7.16 11.26 7.68 11.12L11.5 10.02C11.78 9.94 12.06 10.04 12.24 10.26L13.6 11.98L15.54 9.18C15.86 8.72 16.5 8.84 16.66 9.34L17.44 11.8C17.56 12.2 17.28 12.62 16.82 12.66L16.6 12.54Z" fill="currentColor"/>
-                    </svg>
-                 </div>
+        <Link href="/dashboard/help" className="block">
+            <Card className="relative overflow-hidden bg-primary text-primary-foreground group-data-[collapsible=icon]:p-0 hover:bg-primary/90 transition-colors">
                 <div className="group-data-[collapsible=icon]:hidden">
-                  <h3 className="font-semibold text-sm">Download our Mobile App</h3>
-                  <p className="text-xs text-primary-foreground/80 mb-3">Get easy in another way</p>
-                  <Button variant="secondary" size="sm" className="w-full text-primary">Download</Button>
+                    {downloadAppImage && (
+                    <Image src={downloadAppImage.imageUrl} alt="Download App background" fill objectFit="cover" className="opacity-20" />
+                    )}
                 </div>
-            </CardContent>
-         </Card>
+                <CardContent className="relative z-10 p-3 text-center">
+                    <div className="mb-2 mt-1 rounded-full bg-white/30 size-8 mx-auto flex items-center justify-center">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
+                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.6 12.54L12.82 16.32C12.44 16.7 11.8 16.7 11.42 16.32L7.4 12.3C7.02 11.92 7.16 11.26 7.68 11.12L11.5 10.02C11.78 9.94 12.06 10.04 12.24 10.26L13.6 11.98L15.54 9.18C15.86 8.72 16.5 8.84 16.66 9.34L17.44 11.8C17.56 12.2 17.28 12.62 16.82 12.66L16.6 12.54Z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <div className="group-data-[collapsible=icon]:hidden">
+                    <h3 className="font-semibold text-sm">Instale o App</h3>
+                    <p className="text-xs text-primary-foreground/80">Acesse de forma mais rápida.</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </Link>
       </SidebarFooter>
     </Sidebar>
   );
