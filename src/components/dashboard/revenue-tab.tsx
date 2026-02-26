@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,8 @@ export default function RevenueTab() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get('tab');
 
   const [isRevenueItemDialogOpen, setRevenueItemDialogOpen] = useState(false);
   const [editingRevenueItem, setEditingRevenueItem] = useState<RevenueItem | undefined>(undefined);
@@ -264,7 +267,7 @@ export default function RevenueTab() {
           <CardTitle>Lançamentos</CardTitle>
         </CardHeader>
         <CardContent>
-            <Tabs defaultValue="all" className="w-full">
+            <Tabs defaultValue={activeTab || 'all'} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="all">Todos</TabsTrigger>
                     <TabsTrigger value="overdue">Atrasados</TabsTrigger>

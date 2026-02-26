@@ -6,10 +6,11 @@ import type { CostItem, RevenueItem } from '@/lib/types';
 import { useMemo } from 'react';
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CircleDollarSign } from 'lucide-react';
+import { AlertTriangle, CircleDollarSign, ArrowRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function WeeklySummary() {
   const { user } = useUser();
@@ -63,7 +64,7 @@ export default function WeeklySummary() {
   
   if (isLoading) {
     return (
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
         </div>
@@ -91,6 +92,12 @@ export default function WeeklySummary() {
                     </li>
                 ))}
             </ul>
+            <Button asChild variant="secondary" size="sm" className="mt-4">
+              <Link href="/dashboard/costs?tab=this-week">
+                Ver Contas a Pagar
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </AlertDescription>
         </Alert>
       )}
@@ -109,6 +116,12 @@ export default function WeeklySummary() {
                     </li>
                 ))}
             </ul>
+            <Button asChild variant="secondary" size="sm" className="mt-4">
+                <Link href="/dashboard/revenue?tab=this-week">
+                    Ver Contas a Receber
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
           </AlertDescription>
         </Alert>
       )}

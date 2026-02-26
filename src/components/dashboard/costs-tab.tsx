@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,8 @@ import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 export default function CostsTab() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get('tab');
   const [isCostItemDialogOpen, setCostItemDialogOpen] = useState(false);
   const [editingCostItem, setEditingCostItem] = useState<CostItem | undefined>(undefined);
   const [deletingCostItem, setDeletingCostItem] = useState<CostItem | undefined>(undefined);
@@ -255,7 +258,7 @@ export default function CostsTab() {
               <CardTitle>Lançamentos</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="all" className="w-full">
+            <Tabs defaultValue={activeTab || 'all'} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="all">Todos</TabsTrigger>
                     <TabsTrigger value="overdue">Atrasados</TabsTrigger>
