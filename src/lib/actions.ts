@@ -391,6 +391,40 @@ export function payCostItem(
   }
 }
 
+export function unpayCostItem(
+  firestore: Firestore,
+  userId: string,
+  costItem: CostItem
+) {
+  const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItem.id);
+  
+  const costDecrement = costItem.actualAmount || 0;
+
+  const data = {
+    status: 'Pendente' as const,
+    actualAmount: 0,
+    updatedAt: serverTimestamp(),
+  };
+
+  updateDoc(costItemDocRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: costItemDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+
+  if (costItem.projectId && costDecrement > 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, costItem.projectId);
+    updateDoc(projectDocRef, {
+      actualTotalCost: increment(-costDecrement)
+    }).catch(error => console.error("Failed to update project total cost on un-pay:", error));
+  }
+}
+
 
 // --- RevenueItem Actions ---
 
@@ -527,5 +561,38 @@ export function receiveRevenueItem(
     updateDoc(projectDocRef, {
       actualTotalRevenue: increment(revenueIncrement)
     }).catch(error => console.error("Failed to update project total revenue on receive:", error));
+  }
+}
+
+export function unreceiveRevenueItem(
+  firestore: Firestore,
+  userId: string,
+  revenueItem: RevenueItem
+) {
+  const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${revenueItem.projectId}/revenueItems`, revenueItem.id);
+  
+  const revenueDecrement = revenueItem.receivedAmount || 0;
+  
+  const data = {
+    receivedAmount: 0,
+    updatedAt: serverTimestamp(),
+  };
+
+  updateDoc(revenueItemDocRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: revenueItemDocRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    );
+  });
+  
+  if (revenueDecrement > 0) {
+    const projectDocRef = doc(firestore, `users/${userId}/projects`, revenueItem.projectId);
+    updateDoc(projectDocRef, {
+      actualTotalRevenue: increment(-revenueDecrement)
+    }).catch(error => console.error("Failed to update project total revenue on un-receive:", error));
   }
 }

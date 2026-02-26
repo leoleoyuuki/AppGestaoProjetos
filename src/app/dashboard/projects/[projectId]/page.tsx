@@ -16,7 +16,7 @@ import { PlusCircle, DollarSign, Wallet, Activity, Percent, TrendingUp, Trending
 import { CostItemDialog } from '@/components/dashboard/cost-item-dialog';
 import { RevenueItemDialog } from '@/components/dashboard/revenue-item-dialog';
 import { ProjectDialog } from '@/components/dashboard/project-dialog';
-import { updateProject, payCostItem, deleteCostItem, receiveRevenueItem, deleteRevenueItem } from '@/lib/actions';
+import { updateProject, payCostItem, deleteCostItem, receiveRevenueItem, deleteRevenueItem, unpayCostItem, unreceiveRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DeleteAlertDialog } from '@/components/ui/delete-alert-dialog';
@@ -89,9 +89,10 @@ export default function ProjectDetailPage() {
       toast({ title: 'Sucesso!', description: 'Conta marcada como paga.' });
   }
   const handleDeleteCostConfirm = async () => {
-      if (!deletingCostItem || !user || !firestore) return;
-      await deleteCostItem(firestore, user.uid, deletingCostItem);
-      toast({ title: 'Sucesso', description: 'Custo excluído.' });
+      if (deletingCostItem && user && firestore) {
+        await deleteCostItem(firestore, user.uid, deletingCostItem);
+        toast({ title: 'Sucesso', description: 'Custo excluído.' });
+      }
       setDeletingCostItem(undefined);
   };
 
@@ -109,11 +110,24 @@ export default function ProjectDetailPage() {
       toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
   }
   const handleDeleteRevenueConfirm = async () => {
-      if (!deletingRevenueItem || !user || !firestore) return;
-      await deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
-      toast({ title: 'Sucesso', description: 'Receita excluída.' });
+      if (deletingRevenueItem && user && firestore) {
+        await deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
+        toast({ title: 'Sucesso', description: 'Receita excluída.' });
+      }
       setDeletingRevenueItem(undefined);
   };
+  
+  const handleUnpayCostItem = async (cost: CostItem) => {
+    if (!user || !firestore) return;
+    await unpayCostItem(firestore, user.uid, cost);
+    toast({ title: 'Sucesso!', description: 'Pagamento desmarcado.' });
+  }
+
+  const handleUnreceiveRevenueItem = async (revenue: RevenueItem) => {
+    if (!user || !firestore) return;
+    await unreceiveRevenueItem(firestore, user.uid, revenue);
+    toast({ title: 'Sucesso!', description: 'Recebimento desmarcado.' });
+  }
 
   // --- Status Logic ---
   const getCostStatus = (cost: CostItem): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
@@ -227,7 +241,11 @@ export default function ProjectDetailPage() {
                         <p>Recebido: <span className="font-medium text-foreground">{formatCurrency(r.receivedAmount)}</span></p>
                       </div>
                        <div className="flex items-center justify-end gap-2 pt-2">
-                        {!isPaid && (
+                        {isPaid ? (
+                            <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" onClick={() => handleUnreceiveRevenueItem(r)}>
+                                Desmarcar Recebimento
+                            </Button>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
@@ -280,7 +298,11 @@ export default function ProjectDetailPage() {
                     <TableCell className="text-right">{formatCurrency(r.receivedAmount)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {!isPaid && (
+                        {isPaid ? (
+                            <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => handleUnreceiveRevenueItem(r)}>
+                                Desmarcar
+                            </Button>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
@@ -343,12 +365,16 @@ export default function ProjectDetailPage() {
                               <p>Real: <span className="font-medium text-foreground">{formatCurrency(c.actualAmount)}</span></p>
                           </div>
                           <div className="flex items-center justify-end gap-2 pt-2">
-                              {!isPaid && (
-                                  <Button variant="outline" size="sm" className="h-8" onClick={() => handlePayCostItem(c)}>
-                                      <Check className="mr-1 h-4 w-4" />
-                                      Pagar
-                                  </Button>
-                              )}
+                            {isPaid ? (
+                                <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" onClick={() => handleUnpayCostItem(c)}>
+                                    Desmarcar Pagamento
+                                </Button>
+                            ) : (
+                                <Button variant="outline" size="sm" className="h-8" onClick={() => handlePayCostItem(c)}>
+                                    <Check className="mr-1 h-4 w-4" />
+                                    Pagar
+                                </Button>
+                            )}
                               <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -393,7 +419,11 @@ export default function ProjectDetailPage() {
                     <TableCell className="text-right">{formatCurrency(c.actualAmount)}</TableCell>
                     <TableCell className="text-right">
                        <div className="flex items-center justify-end gap-2">
-                        {!isPaid && (
+                        {isPaid ? (
+                            <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => handleUnpayCostItem(c)}>
+                                Desmarcar
+                            </Button>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
@@ -432,8 +462,8 @@ export default function ProjectDetailPage() {
          <CostItemDialog 
             isOpen={isCostDialogOpen}
             onOpenChange={(isOpen) => {
-                setCostDialogOpen(isOpen);
                 if (!isOpen) setEditingCostItem(undefined);
+                setCostDialogOpen(isOpen);
             }}
             projects={[project]}
             costItem={editingCostItem}
@@ -444,8 +474,8 @@ export default function ProjectDetailPage() {
          <RevenueItemDialog 
             isOpen={isRevenueDialogOpen}
             onOpenChange={(isOpen) => {
-                setRevenueDialogOpen(isOpen);
                 if (!isOpen) setEditingRevenueItem(undefined);
+                setRevenueDialogOpen(isOpen);
             }}
             projects={[project]}
             revenueItem={editingRevenueItem}

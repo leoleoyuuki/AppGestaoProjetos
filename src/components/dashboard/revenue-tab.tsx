@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RevenueItemDialog } from './revenue-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
-import { deleteRevenueItem, receiveRevenueItem } from '@/lib/actions';
+import { deleteRevenueItem, receiveRevenueItem, unreceiveRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
@@ -47,9 +47,10 @@ export default function RevenueTab() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deletingRevenueItem || !user || !firestore) return;
-    await deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
-    toast({ title: 'Sucesso', description: 'Conta a receber excluída.' });
+    if (deletingRevenueItem && user && firestore) {
+      await deleteRevenueItem(firestore, user.uid, deletingRevenueItem);
+      toast({ title: 'Sucesso', description: 'Conta a receber excluída.' });
+    }
     setDeletingRevenueItem(undefined);
   };
   
@@ -57,6 +58,12 @@ export default function RevenueTab() {
     if (!user || !firestore) return;
     await receiveRevenueItem(firestore, user.uid, revenue);
     toast({ title: 'Sucesso!', description: 'Conta marcada como recebida.' });
+  }
+
+  const handleUnreceiveRevenueItem = async (revenue: RevenueItem) => {
+    if (!user || !firestore) return;
+    await unreceiveRevenueItem(firestore, user.uid, revenue);
+    toast({ title: 'Sucesso!', description: 'Recebimento desmarcado.' });
   }
 
   const getStatus = (revenue: RevenueItem): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
@@ -196,7 +203,11 @@ export default function RevenueTab() {
                     <p>Cliente: {project?.client || 'N/A'}</p>
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2">
-                  {!isPaid && (
+                  {isPaid ? (
+                      <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" onClick={() => handleUnreceiveRevenueItem(revenue)}>
+                          Desmarcar Recebimento
+                      </Button>
+                  ) : (
                     <Button
                       variant="outline"
                       size="sm"
@@ -275,7 +286,11 @@ export default function RevenueTab() {
                 <TableCell className="truncate max-w-xs">{revenue.description || '-'}</TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-2">
-                    {!isPaid && (
+                    {isPaid ? (
+                        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => handleUnreceiveRevenueItem(revenue)}>
+                            Desmarcar
+                        </Button>
+                    ) : (
                       <Button
                         variant="outline"
                         size="sm"

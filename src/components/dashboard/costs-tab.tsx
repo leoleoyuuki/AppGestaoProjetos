@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CostItemDialog } from './cost-item-dialog';
 import { DeleteAlertDialog } from '../ui/delete-alert-dialog';
-import { deleteCostItem, payCostItem } from '@/lib/actions';
+import { deleteCostItem, payCostItem, unpayCostItem } from '@/lib/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
@@ -49,9 +49,10 @@ export default function CostsTab() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deletingCostItem || !user || !firestore) return;
-    await deleteCostItem(firestore, user.uid, deletingCostItem);
-    toast({ title: 'Sucesso', description: 'Conta a pagar excluída.' });
+    if (deletingCostItem && user && firestore) {
+      await deleteCostItem(firestore, user.uid, deletingCostItem);
+      toast({ title: 'Sucesso', description: 'Conta a pagar excluída.' });
+    }
     setDeletingCostItem(undefined);
   };
   
@@ -59,6 +60,12 @@ export default function CostsTab() {
     if (!user || !firestore) return;
     await payCostItem(firestore, user.uid, cost);
     toast({ title: 'Sucesso!', description: 'Conta marcada como paga.' });
+  }
+
+  const handleUnpayCostItem = async (cost: CostItem) => {
+    if (!user || !firestore) return;
+    await unpayCostItem(firestore, user.uid, cost);
+    toast({ title: 'Sucesso!', description: 'Pagamento desmarcado.' });
   }
 
   const isLoading = costsLoading || projectsLoading;
@@ -194,13 +201,12 @@ export default function CostsTab() {
                             <div>Categoria: <Badge variant="outline" className="ml-1">{cost.category}</Badge></div>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
-                             {!isPaid && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8"
-                                    onClick={() => handlePayCostItem(cost)}
-                                >
+                            {isPaid ? (
+                                <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground" onClick={() => handleUnpayCostItem(cost)}>
+                                    Desmarcar Pagamento
+                                </Button>
+                            ) : (
+                                <Button variant="outline" size="sm" className="h-8" onClick={() => handlePayCostItem(cost)}>
                                     <Check className="mr-1 h-4 w-4" />
                                     Pagar
                                 </Button>
@@ -212,7 +218,6 @@ export default function CostsTab() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {!isPaid && <DropdownMenuItem onClick={() => handlePayCostItem(cost)}>Marcar como Pago</DropdownMenuItem>}
                                     <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
                                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
                                         Excluir
@@ -256,6 +261,7 @@ export default function CostsTab() {
               )}
               {!loading && data && data.map(cost => {
                 const { label, variant } = getStatus(cost);
+                const isPaid = label === 'Pago';
                 return (
                   <TableRow key={cost.id}>
                     <TableCell className="font-medium">
@@ -271,22 +277,31 @@ export default function CostsTab() {
                     <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
                     <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {label !== 'Pago' && (
-                            <DropdownMenuItem onClick={() => handlePayCostItem(cost)}>Marcar como Pago</DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                       <div className="flex items-center justify-end gap-2">
+                            {isPaid ? (
+                                <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => handleUnpayCostItem(cost)}>
+                                    Desmarcar
+                                </Button>
+                            ) : (
+                                <Button variant="outline" size="sm" className="h-8" onClick={() => handlePayCostItem(cost)}>
+                                    <Check className="mr-1 h-4 w-4" />
+                                    Pagar
+                                </Button>
+                            )}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openDialogForEdit(cost)}>Editar</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeletingCostItem(cost)}>
+                                        Excluir
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </TableCell>
                   </TableRow>
                 )
