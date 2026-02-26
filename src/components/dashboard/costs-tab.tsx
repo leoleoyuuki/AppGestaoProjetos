@@ -188,10 +188,10 @@ export default function CostsTab() {
                             <Badge variant={variant}>{label}</Badge>
                         </div>
                         {cost.isRecurring && <Badge variant="outline" className="text-muted-foreground"><RefreshCw className="h-3 w-3 mr-1" /> Recorrente</Badge>}
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground space-y-1">
                             <p>Vencimento: {new Date(cost.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                             <p>Valor: <span className="font-medium text-foreground">{formatCurrency(cost.plannedAmount)}</span></p>
-                            <p>Categoria: <Badge variant="outline" className="mt-1">{cost.category}</Badge></p>
+                            <div>Categoria: <Badge variant="outline" className="ml-1">{cost.category}</Badge></div>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
                              {!isPaid && (
