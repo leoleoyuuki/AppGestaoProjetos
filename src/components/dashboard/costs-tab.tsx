@@ -129,6 +129,32 @@ export default function CostsTab() {
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
 
+    const getStatusValue = (cost: CostItem) => {
+        const { label } = getStatus(cost);
+        if (label === 'Atrasado') return 1;
+        if (label === 'Pendente') return 2;
+        return 3; // 'Pago'
+    };
+
+    const sortWithStatus = (a: CostItem, b: CostItem) => {
+        const statusA = getStatusValue(a);
+        const statusB = getStatusValue(b);
+
+        if (statusA !== statusB) {
+            return statusA - statusB;
+        }
+
+        const dateA = new Date(a.transactionDate + 'T00:00:00').getTime();
+        const dateB = new Date(b.transactionDate + 'T00:00:00').getTime();
+        
+        if (statusA <= 2) { // Atrasado & Pendente
+            return dateA - dateB;
+        }
+
+        // Pago
+        return dateB - dateA;
+    };
+
     const overdue = costs
       .filter(cost => getStatus(cost).label === 'Atrasado')
       .sort((a, b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime());
@@ -138,7 +164,7 @@ export default function CostsTab() {
         const transactionDate = new Date(cost.transactionDate + 'T00:00:00');
         return isWithinInterval(transactionDate, { start: weekStart, end: weekEnd });
       })
-      .sort((a, b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime());
+      .sort(sortWithStatus);
 
     return { overdueCosts: overdue, thisWeekCosts: thisWeek };
   }, [costs]);

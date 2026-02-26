@@ -130,6 +130,32 @@ export default function RevenueTab() {
 
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+    
+    const getStatusValue = (revenue: RevenueItem) => {
+        const { label } = getStatus(revenue);
+        if (label === 'Atrasado') return 1;
+        if (label === 'Pendente') return 2;
+        return 3; // 'Recebido'
+    };
+
+    const sortWithStatus = (a: RevenueItem, b: RevenueItem) => {
+        const statusA = getStatusValue(a);
+        const statusB = getStatusValue(b);
+
+        if (statusA !== statusB) {
+            return statusA - statusB;
+        }
+
+        const dateA = new Date(a.transactionDate + 'T00:00:00').getTime();
+        const dateB = new Date(b.transactionDate + 'T00:00:00').getTime();
+        
+        if (statusA <= 2) { // Atrasado & Pendente
+            return dateA - dateB;
+        }
+
+        // Recebido
+        return dateB - dateA;
+    };
 
     const overdue = userRevenues
       .filter(revenue => getStatus(revenue).label === 'Atrasado')
@@ -140,7 +166,7 @@ export default function RevenueTab() {
         const transactionDate = new Date(revenue.transactionDate + 'T00:00:00');
         return isWithinInterval(transactionDate, { start: weekStart, end: weekEnd });
       })
-      .sort((a,b) => new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime());
+      .sort(sortWithStatus);
 
     return { overdueRevenues: overdue, thisWeekRevenues: thisWeek };
   }, [userRevenues]);
