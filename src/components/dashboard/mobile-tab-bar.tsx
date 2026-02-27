@@ -49,7 +49,7 @@ export default function MobileTabBar() {
 
   return (
     <>
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t z-20 pb-8">
+      <div className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t z-20 pb-12">
         <div className="grid h-[60px] grid-cols-5 items-center">
           {navItems.map((item, index) => {
             if (!item) {
