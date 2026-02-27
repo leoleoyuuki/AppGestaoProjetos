@@ -177,11 +177,11 @@ export default function OverviewTab() {
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setRevenueDialogOpen(true)}>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setRevenueDialogOpen(true)}>
                       <TrendingUp className="mr-2 h-4 w-4" />
                       <span>Nova Receita</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setCostDialogOpen(true)}>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setCostDialogOpen(true)}>
                       <TrendingDown className="mr-2 h-4 w-4" />
                       <span>Novo Custo</span>
                   </DropdownMenuItem>

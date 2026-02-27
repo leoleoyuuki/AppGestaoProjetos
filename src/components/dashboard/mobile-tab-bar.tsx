@@ -62,15 +62,15 @@ export default function MobileTabBar() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="top" align="center" className="w-56 mb-2">
-                       <DropdownMenuItem onClick={() => setProjectDialogOpen(true)}>
+                       <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setProjectDialogOpen(true)}>
                           <Briefcase className="mr-2 h-4 w-4" />
                           <span>Novo Projeto</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setRevenueDialogOpen(true)}>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setRevenueDialogOpen(true)}>
                           <TrendingUp className="mr-2 h-4 w-4" />
                           <span>Nova Receita</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setCostDialogOpen(true)}>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setCostDialogOpen(true)}>
                           <TrendingDown className="mr-2 h-4 w-4" />
                           <span>Novo Custo</span>
                       </DropdownMenuItem>
