@@ -8,6 +8,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import Logo from '@/components/logo';
 import {
@@ -48,12 +49,22 @@ const generalItems = [
 ]
 
 export default function AppSidebar() {
+  const { isMobile, setOpenMobile } = useSidebar();
   const auth = useAuth();
   const { toast } = useToast();
   const pathname = usePathname();
   const downloadAppImage = PlaceHolderImages.find((img) => img.id === 'download-app-bg');
 
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const handleSignOut = async () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
     try {
       await signOut(auth);
       toast({ title: 'Sucesso', description: 'Sessão encerrada com sucesso.' });
@@ -88,7 +99,7 @@ export default function AppSidebar() {
                           tooltip={item.label}
                           className={cn("justify-start", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
                       >
-                        <Link href={item.href}>
+                        <Link href={item.href} onClick={handleLinkClick}>
                             <item.icon className={cn(isActive(item.href) && "text-primary")} />
                             <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                         </Link>
@@ -119,7 +130,7 @@ export default function AppSidebar() {
                             tooltip={item.label}
                             className={cn("justify-start text-muted-foreground hover:text-foreground", isActive(item.href) && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary")}
                           >
-                           <Link href={item.href}>
+                           <Link href={item.href} onClick={handleLinkClick}>
                               <item.icon className={cn(isActive(item.href) && "text-primary")} />
                               <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                             </Link>
@@ -133,7 +144,7 @@ export default function AppSidebar() {
 
       </SidebarContent>
       <SidebarFooter className="mt-auto p-2">
-        <Link href="/dashboard/help" className="block">
+        <Link href="/dashboard/help" onClick={handleLinkClick} className="block">
             <Card className="relative overflow-hidden bg-primary text-primary-foreground group-data-[collapsible=icon]:p-0 hover:bg-primary/90 transition-colors">
                 <div className="group-data-[collapsible=icon]:hidden">
                     {downloadAppImage && (
