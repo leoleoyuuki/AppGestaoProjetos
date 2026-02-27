@@ -55,7 +55,7 @@ export default function MobileTabBar() {
             if (!item) {
               return (
                 <div key={index} className="flex justify-center items-center">
-                   <DropdownMenu>
+                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                        <Button size="icon" className="w-14 h-14 rounded-full -translate-y-4 shadow-lg bg-primary hover:bg-primary/90">
                         <Plus className="w-6 h-6" />

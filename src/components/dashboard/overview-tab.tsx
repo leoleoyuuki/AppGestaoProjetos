@@ -169,7 +169,7 @@ export default function OverviewTab() {
             </PopoverContent>
           </Popover>
 
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full sm:w-auto">
                       <PlusCircle className="mr-2 h-4 w-4" />
