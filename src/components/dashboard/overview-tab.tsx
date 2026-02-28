@@ -10,6 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
   Percent,
+  Zap,
 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { ProjectDialog } from './project-dialog';
@@ -29,6 +30,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CostItemDialog } from './cost-item-dialog';
 import { RevenueItemDialog } from './revenue-item-dialog';
 import RevenueLineChart from './overview/revenue-line-chart';
+import { QuickExpenseDialog } from './quick-expense-dialog';
 
 // Helper to parse YYYY-MM-DD strings in the local timezone, avoiding UTC conversion issues.
 const parseLocalDate = (dateString: string) => new Date(dateString + 'T00:00:00');
@@ -37,6 +39,7 @@ export default function OverviewTab() {
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
   const [isCostDialogOpen, setCostDialogOpen] = useState(false);
   const [isRevenueDialogOpen, setRevenueDialogOpen] = useState(false);
+  const [isQuickExpenseDialogOpen, setQuickExpenseDialogOpen] = useState(false);
   const [isMonthPickerOpen, setMonthPickerOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>();
 
@@ -185,6 +188,10 @@ export default function OverviewTab() {
                       <TrendingDown className="mr-2 h-4 w-4" />
                       <span>Novo Custo</span>
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setQuickExpenseDialogOpen(true)}>
+                      <Zap className="mr-2 h-4 w-4" />
+                      <span>Despesa Rápida</span>
+                  </DropdownMenuItem>
               </DropdownMenuContent>
           </DropdownMenu>
 
@@ -277,6 +284,11 @@ export default function OverviewTab() {
               isOpen={isRevenueDialogOpen}
               onOpenChange={setRevenueDialogOpen}
               projects={projects}
+          />
+          <QuickExpenseDialog
+            isOpen={isQuickExpenseDialogOpen}
+            onOpenChange={setQuickExpenseDialogOpen}
+            projects={projects}
           />
         </>
       )}

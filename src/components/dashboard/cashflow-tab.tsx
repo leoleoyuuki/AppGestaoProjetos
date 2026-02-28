@@ -4,21 +4,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter, DollarSign, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
+import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter, DollarSign, TrendingUp, TrendingDown, Landmark, Zap } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collectionGroup, query, collection, doc } from 'firebase/firestore';
 import type { CostItem, RevenueItem, Project, Transaction, CostCategory, UserProfile } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
 import Link from 'next/link';
+import { QuickExpenseDialog } from './quick-expense-dialog';
 
 export default function CashflowTab() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const [isQuickExpenseDialogOpen, setQuickExpenseDialogOpen] = useState(false);
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -138,7 +140,7 @@ export default function CashflowTab() {
           <CardDescription>Visão consolidada de todas as entradas e saídas.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
              <Popover>
               <PopoverTrigger asChild>
                 <Button variant={"outline"} className="w-full md:w-[280px] justify-start text-left font-normal">
@@ -172,6 +174,9 @@ export default function CashflowTab() {
               </SelectContent>
             </Select>
              <Button variant="outline" className="w-full md:w-auto"><Filter className="mr-2 h-4 w-4"/> Aplicar Filtros</Button>
+             <Button className="w-full md:w-auto" onClick={() => setQuickExpenseDialogOpen(true)}>
+                <Zap className="mr-2 h-4 w-4"/> Despesa Rápida
+             </Button>
           </div>
           {/* Mobile View */}
           <div className="md:hidden space-y-4">
@@ -243,6 +248,11 @@ export default function CashflowTab() {
           </Table>
         </CardContent>
       </Card>
+      {projects && <QuickExpenseDialog
+        isOpen={isQuickExpenseDialogOpen}
+        onOpenChange={setQuickExpenseDialogOpen}
+        projects={projects}
+      />}
     </div>
   );
 }

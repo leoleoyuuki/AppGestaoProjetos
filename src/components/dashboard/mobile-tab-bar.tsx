@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Wallet, Plus, CircleDollarSign, Briefcase, TrendingUp, TrendingDown } from 'lucide-react';
+import { LayoutDashboard, Wallet, Plus, CircleDollarSign, Briefcase, TrendingUp, TrendingDown, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,12 +18,14 @@ import { ProjectDialog } from './project-dialog';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Project } from '@/lib/types';
+import { QuickExpenseDialog } from './quick-expense-dialog';
 
 export default function MobileTabBar() {
   const pathname = usePathname();
   const [isCostDialogOpen, setCostDialogOpen] = useState(false);
   const [isRevenueDialogOpen, setRevenueDialogOpen] = useState(false);
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [isQuickExpenseDialogOpen, setQuickExpenseDialogOpen] = useState(false);
 
   const { user } = useUser();
   const firestore = useFirestore();
@@ -74,6 +76,10 @@ export default function MobileTabBar() {
                           <TrendingDown className="mr-2 h-4 w-4" />
                           <span>Novo Custo</span>
                       </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setQuickExpenseDialogOpen(true)}>
+                          <Zap className="mr-2 h-4 w-4" />
+                          <span>Despesa Rápida</span>
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -109,6 +115,11 @@ export default function MobileTabBar() {
               isOpen={isRevenueDialogOpen}
               onOpenChange={setRevenueDialogOpen}
               projects={projects}
+          />
+          <QuickExpenseDialog
+            isOpen={isQuickExpenseDialogOpen}
+            onOpenChange={setQuickExpenseDialogOpen}
+            projects={projects}
           />
         </>
       )}

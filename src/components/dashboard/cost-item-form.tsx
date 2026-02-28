@@ -305,7 +305,10 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                         type="button"
                         variant="ghost"
                         className="w-full justify-start"
-                        onClick={() => setCategoryDialogOpen(true)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCategoryDialogOpen(true);
+                        }}
                       >
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar categoria
