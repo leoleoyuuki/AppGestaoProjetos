@@ -341,12 +341,18 @@ export function deleteCostItem(
 export function payCostItem(
   firestore: Firestore,
   userId: string,
-  costItem: CostItem
+  costItem: CostItem,
+  paymentAmount?: number
 ) {
   const costItemDocRef = doc(firestore, `users/${userId}/costItems`, costItem.id);
+  
+  const finalAmount = paymentAmount !== undefined 
+    ? paymentAmount 
+    : (costItem.actualAmount > 0 ? costItem.actualAmount : costItem.plannedAmount);
+
   const data = {
     status: 'Pago' as const,
-    actualAmount: costItem.actualAmount > 0 ? costItem.actualAmount : costItem.plannedAmount,
+    actualAmount: finalAmount,
     updatedAt: serverTimestamp(),
   };
 
