@@ -29,7 +29,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { addRevenueItem, receiveRevenueItem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { Project, RevenueItem, RevenueItemFormData } from '@/lib/types';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { CircleDollarSign } from 'lucide-react';
 import { Switch } from '../ui/switch';
 import { formatCurrency } from '@/lib/utils';
@@ -43,6 +43,7 @@ interface QuickGainDialogProps {
 const quickGainFormSchema = z.object({
     isPayingExisting: z.boolean().default(false),
     // Fields for paying existing bill
+    projectFilter: z.string().optional(),
     selectedRevenueItemId: z.string().optional(),
     // Fields for new gain
     name: z.string().optional(),
@@ -52,6 +53,13 @@ const quickGainFormSchema = z.object({
     amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero.'),
 }).superRefine((data, ctx) => {
     if (data.isPayingExisting) {
+        if (!data.projectFilter) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Selecione um projeto para ver as contas.",
+                path: ["projectFilter"],
+            });
+        }
         if (!data.selectedRevenueItemId) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -74,22 +82,10 @@ type QuickGainFormValues = z.infer<typeof quickGainFormSchema>;
 
 export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Fetch pending revenues
-  const pendingRevenuesQuery = useMemoFirebase(() => {
-      if (!user || !firestore) return null;
-      return query(
-          collectionGroup(firestore, 'revenueItems'),
-          where('userId', '==', user.uid),
-          where('receivedAmount', '==', 0)
-      );
-  }, [firestore, user]);
-  const { data: pendingRevenues, isLoading: pendingRevenuesLoading } = useCollection<RevenueItem>(pendingRevenuesQuery);
-
   const form = useForm<QuickGainFormValues>({
     resolver: zodResolver(quickGainFormSchema),
     defaultValues: {
@@ -98,41 +94,39 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
       amount: 0,
       projectId: undefined,
       description: '',
+      projectFilter: undefined,
       selectedRevenueItemId: undefined,
     },
   });
   
   const isPayingExisting = form.watch('isPayingExisting');
+  const projectFilter = form.watch('projectFilter');
   
-  const filteredPendingRevenues = useMemo(() => {
-    if (!pendingRevenues || !projectFilter) return [];
-    return pendingRevenues.filter(rev => rev.projectId === projectFilter);
-  }, [pendingRevenues, projectFilter]);
+  // Fetch pending revenues for the selected project
+  const pendingRevenuesQuery = useMemoFirebase(() => {
+      if (!user || !firestore || !projectFilter) return null;
+      return query(
+          collection(firestore, `users/${user.uid}/projects/${projectFilter}/revenueItems`),
+          where('receivedAmount', '==', 0)
+      );
+  }, [firestore, user, projectFilter]);
+  const { data: pendingRevenues, isLoading: pendingRevenuesLoading } = useCollection<RevenueItem>(pendingRevenuesQuery);
 
-  // When the project filter changes, clear the selected revenue item and amount.
+  // When the switch is toggled, or dialog opens/closes, reset form
   useEffect(() => {
-    form.setValue('selectedRevenueItemId', undefined);
-    form.setValue('amount', 0);
-  }, [projectFilter, form]);
-
-
-  useEffect(() => {
-      if (!isOpen) {
-          form.reset({
-            isPayingExisting: false,
-            name: '',
-            amount: 0,
-            projectId: undefined,
-            description: '',
-            selectedRevenueItemId: undefined,
-          });
-          setProjectFilter(undefined);
-      }
-  }, [isOpen, form]);
-
+      form.reset({
+        isPayingExisting: form.getValues('isPayingExisting'), // keep the switch state
+        name: '',
+        amount: 0,
+        projectId: undefined,
+        description: '',
+        projectFilter: undefined,
+        selectedRevenueItemId: undefined,
+      });
+  }, [isPayingExisting, isOpen, form]);
 
   const handleSubmit = async (values: QuickGainFormValues) => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !projects) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
       return;
     }
@@ -202,7 +196,7 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
                                 <FormLabel>Quitar conta existente?</FormLabel>
-                                <FormDescription>Marque para quitar uma conta a receber pendente.</FormDescription>
+                                <FormDescription>Marque para dar baixa em uma conta a receber.</FormDescription>
                                 <FormMessage />
                             </div>
                              <FormControl>
@@ -217,26 +211,30 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
 
                 {isPayingExisting ? (
                     <>
-                        <FormItem>
-                            <FormLabel>Selecione um Projeto</FormLabel>
-                            <Select
-                                onValueChange={(value) => setProjectFilter(value)}
-                                value={projectFilter}
-                            >
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione para ver as contas" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {projects?.map((p) => (
-                                        <SelectItem key={p.id} value={p.id}>
-                                        {p.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </FormItem>
+                        <FormField
+                            control={form.control}
+                            name="projectFilter"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Selecione um Projeto</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione para ver as contas" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {projects?.map((p) => (
+                                                <SelectItem key={p.id} value={p.id}>
+                                                {p.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                     <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <FormField
                             control={form.control}
@@ -247,13 +245,12 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
                                     <Select 
                                       onValueChange={value => {
                                         field.onChange(value);
-                                        // Auto-fill amount when an item is selected
-                                        const selectedRevenue = filteredPendingRevenues?.find(c => c.id === value);
+                                        const selectedRevenue = pendingRevenues?.find(c => c.id === value);
                                         if (selectedRevenue) {
                                             form.setValue('amount', selectedRevenue.plannedAmount);
                                         }
                                       }} 
-                                      defaultValue={field.value}
+                                      value={field.value}
                                       disabled={!projectFilter || pendingRevenuesLoading}
                                     >
                                         <FormControl>
@@ -261,20 +258,20 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
                                                 <SelectValue placeholder={
                                                     !projectFilter ? "Primeiro selecione um projeto" :
                                                     pendingRevenuesLoading ? "Carregando..." :
-                                                    (filteredPendingRevenues.length === 0) ? "Nenhuma conta pendente" :
+                                                    (pendingRevenues?.length === 0) ? "Nenhuma conta pendente" :
                                                     "Selecione uma conta pendente"
                                                 } />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {filteredPendingRevenues && filteredPendingRevenues.length > 0 ? (
-                                                filteredPendingRevenues.map((revenue) => (
+                                            {pendingRevenues && pendingRevenues.length > 0 ? (
+                                                pendingRevenues.map((revenue) => (
                                                     <SelectItem key={revenue.id} value={revenue.id}>
-                                                        {revenue.name} ({formatCurrency(revenue.plannedAmount)}) - {new Date(revenue.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
+                                                        {revenue.name} ({formatCurrency(revenue.plannedAmount)})
                                                     </SelectItem>
                                                 ))
                                             ) : (
-                                                <SelectItem value="none" disabled>Não há nenhuma conta a receber prevista para este projeto.</SelectItem>
+                                                <SelectItem value="none" disabled>Não há contas pendentes.</SelectItem>
                                             )}
                                         </SelectContent>
                                     </Select>
@@ -324,10 +321,7 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Projeto</FormLabel>
-                                <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                >
+                                <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
                                     <SelectValue placeholder="Selecione um projeto" />
