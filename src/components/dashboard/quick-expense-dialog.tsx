@@ -292,7 +292,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                                             {filteredPendingCosts && filteredPendingCosts.length > 0 ? (
                                                 filteredPendingCosts.map((cost) => (
                                                     <SelectItem key={cost.id} value={cost.id}>
-                                                        {cost.name} ({formatCurrency(cost.plannedAmount)})
+                                                        {cost.name} ({formatCurrency(cost.plannedAmount)}) - {new Date(cost.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
                                                     </SelectItem>
                                                 ))
                                             ) : (
@@ -392,7 +392,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="--none--">Nenhum (Custo da Empresa)</SelectItem>
+                                    <SelectItem value="--none--">Custo da Empresa</SelectItem>
                                     {projects?.map((p) => (
                                     <SelectItem key={p.id} value={p.id}>
                                         {p.name}
