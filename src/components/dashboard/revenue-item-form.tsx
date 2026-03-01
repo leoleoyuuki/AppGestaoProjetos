@@ -227,7 +227,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data da Primeira Parcela</FormLabel>
-                  <Popover open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen}>
+                  <Popover open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen} modal={false}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -243,7 +243,10 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={(d) => { if(d) field.onChange(d); setFirstInstallmentCalendarOpen(false); }}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setFirstInstallmentCalendarOpen(false);
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
@@ -286,7 +289,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Vencimento</FormLabel>
-                  <Popover open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
+                  <Popover open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen} modal={false}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -302,7 +305,10 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={(d) => { if(d) field.onChange(d); setTransactionCalendarOpen(false);}}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setTransactionCalendarOpen(false);
+                        }}
                         initialFocus
                       />
                     </PopoverContent>

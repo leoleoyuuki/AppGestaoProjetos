@@ -143,7 +143,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Data da Venda</FormLabel>
-                 <Popover open={isCalendarOpen} onOpenChange={setCalendarOpen}>
+                 <Popover open={isCalendarOpen} onOpenChange={setCalendarOpen} modal={false}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
@@ -163,7 +163,6 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
                       mode="single"
                       selected={field.value}
                       onSelect={(date) => {
-                        if(!date) return;
                         field.onChange(date);
                         setCalendarOpen(false);
                       }}
