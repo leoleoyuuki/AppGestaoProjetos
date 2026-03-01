@@ -15,6 +15,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -222,6 +223,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
                                 <FormLabel>Pagar conta existente?</FormLabel>
+                                <FormDescription>Marque para quitar uma conta pendente.</FormDescription>
                                 <FormMessage />
                             </div>
                              <FormControl>
@@ -274,13 +276,14 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                                         }
                                       }} 
                                       defaultValue={field.value}
-                                      disabled={!projectFilter || pendingCostsLoading || filteredPendingCosts.length === 0}
+                                      disabled={!projectFilter || pendingCostsLoading}
                                     >
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder={
                                                     !projectFilter ? "Primeiro selecione um filtro" :
                                                     pendingCostsLoading ? "Carregando..." :
+                                                    (filteredPendingCosts.length === 0) ? "Nenhuma conta pendente" :
                                                     "Selecione uma conta pendente"
                                                 } />
                                             </SelectTrigger>
@@ -293,7 +296,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                                                     </SelectItem>
                                                 ))
                                             ) : (
-                                                <SelectItem value="none" disabled>Nenhuma conta pendente</SelectItem>
+                                                <SelectItem value="none" disabled>Não há nenhuma conta a pagar prevista nesse projeto.</SelectItem>
                                             )}
                                         </SelectContent>
                                     </Select>
@@ -321,7 +324,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Nome da Despesa</FormLabel>
-                                <FormControl><Input placeholder="Ex: Gasolina" {...field} /></FormControl>
+                                <FormControl><Input placeholder="Ex: Gasolina" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -407,7 +410,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Descrição (Opcional)</FormLabel>
-                                <FormControl><Textarea placeholder="Detalhes adicionais..." {...field} /></FormControl>
+                                <FormControl><Textarea placeholder="Detalhes adicionais..." {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
