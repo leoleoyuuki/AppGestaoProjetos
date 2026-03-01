@@ -15,7 +15,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -78,6 +77,7 @@ type QuickExpenseFormValues = z.infer<typeof quickExpenseFormSchema>;
 export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpenseDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [projectFilter, setProjectFilter] = useState('');
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -113,6 +113,21 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
   });
   
   const isPayingExisting = form.watch('isPayingExisting');
+  
+  const filteredPendingCosts = useMemo(() => {
+    if (!pendingCosts || !projectFilter) return [];
+    if (projectFilter === '--none--') { // Company costs
+      return pendingCosts.filter(cost => !cost.projectId);
+    }
+    return pendingCosts.filter(cost => cost.projectId === projectFilter);
+  }, [pendingCosts, projectFilter]);
+
+  // When the project filter changes, clear the selected cost item and amount.
+  useEffect(() => {
+    form.setValue('selectedCostItemId', undefined);
+    form.setValue('amount', 0);
+  }, [projectFilter, form]);
+
 
   useEffect(() => {
       if (!isOpen) {
@@ -125,6 +140,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
             description: '',
             selectedCostItemId: undefined,
           });
+          setProjectFilter('');
       }
   }, [isOpen, form]);
 
@@ -206,9 +222,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
                                 <FormLabel>Pagar conta existente?</FormLabel>
-                                <FormDescription>
-                                    Marque para quitar uma conta pendente.
-                                </FormDescription>
+                                <FormMessage />
                             </div>
                              <FormControl>
                                 <Switch
@@ -222,6 +236,28 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
 
                 {isPayingExisting ? (
                     <>
+                        <FormItem>
+                            <FormLabel>Filtrar por Projeto/Empresa</FormLabel>
+                            <Select
+                                onValueChange={(value) => setProjectFilter(value)}
+                                value={projectFilter}
+                            >
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione para ver as contas" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="--none--">Custo da Empresa</SelectItem>
+                                    {projects?.map((p) => (
+                                        <SelectItem key={p.id} value={p.id}>
+                                        {p.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </FormItem>
+
                         <FormField
                             control={form.control}
                             name="selectedCostItemId"
@@ -232,21 +268,26 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                                       onValueChange={value => {
                                         field.onChange(value);
                                         // Auto-fill amount when an item is selected
-                                        const selectedCost = pendingCosts?.find(c => c.id === value);
+                                        const selectedCost = filteredPendingCosts?.find(c => c.id === value);
                                         if (selectedCost) {
                                             form.setValue('amount', selectedCost.plannedAmount);
                                         }
                                       }} 
                                       defaultValue={field.value}
+                                      disabled={!projectFilter || pendingCostsLoading || filteredPendingCosts.length === 0}
                                     >
                                         <FormControl>
-                                            <SelectTrigger disabled={pendingCostsLoading}>
-                                                <SelectValue placeholder={pendingCostsLoading ? "Carregando..." : "Selecione uma conta pendente"} />
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={
+                                                    !projectFilter ? "Primeiro selecione um filtro" :
+                                                    pendingCostsLoading ? "Carregando..." :
+                                                    "Selecione uma conta pendente"
+                                                } />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {pendingCosts && pendingCosts.length > 0 ? (
-                                                pendingCosts.map((cost) => (
+                                            {filteredPendingCosts && filteredPendingCosts.length > 0 ? (
+                                                filteredPendingCosts.map((cost) => (
                                                     <SelectItem key={cost.id} value={cost.id}>
                                                         {cost.name} ({formatCurrency(cost.plannedAmount)})
                                                     </SelectItem>
