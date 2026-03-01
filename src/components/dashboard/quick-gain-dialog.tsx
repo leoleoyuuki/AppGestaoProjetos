@@ -285,7 +285,7 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Valor Recebido (R$)</FormLabel>
-                                <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -310,7 +310,7 @@ export function QuickGainDialog({ projects, isOpen, onOpenChange }: QuickGainDia
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Valor (R$)</FormLabel>
-                                <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
+                                <FormControl><Input type="number" placeholder="0.00" {...field} value={field.value ?? ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
