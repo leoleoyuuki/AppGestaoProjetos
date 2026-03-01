@@ -125,7 +125,8 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
       <DialogContent
         onInteractOutside={(e) => {
           const target = e.target as HTMLElement;
-          if (target.closest('[data-radix-popper-content-wrapper]')) {
+          // Allow interaction with react-day-picker
+          if (target.closest('.rdp')) {
             e.preventDefault();
           }
         }}
