@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter, DollarSign, TrendingUp, TrendingDown, Landmark, Zap } from 'lucide-react';
+import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter, DollarSign, TrendingUp, TrendingDown, Landmark, Zap, Briefcase, Wallet } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -108,6 +108,20 @@ export default function CashflowTab() {
     };
   }, [isLoading, userProfile, costs, revenues, user]);
 
+  const projectPerformance = useMemo(() => {
+    if (isLoading || !projects || !costs || !revenues || !user) {
+        return { plannedRevenue: 0, realizedRevenue: 0, plannedCost: 0, realizedCost: 0 };
+    }
+    const userRevenues = revenues.filter(r => r.userId === user.uid);
+
+    const plannedRevenue = projects.reduce((acc, p) => acc + p.plannedTotalRevenue, 0);
+    const realizedRevenue = userRevenues.reduce((acc, r) => acc + r.receivedAmount, 0);
+    const plannedCost = projects.reduce((acc, p) => acc + p.plannedTotalCost, 0);
+    const realizedCost = costs.reduce((acc, c) => acc + c.actualAmount, 0);
+    
+    return { plannedRevenue, realizedRevenue, plannedCost, realizedCost };
+  }, [isLoading, projects, costs, revenues, user]);
+
 
   return (
     <div className="space-y-6">
@@ -136,6 +150,22 @@ export default function CashflowTab() {
             <KeyMetricCard title="Total de Saídas" value={formatCurrency(totalCost)} Icon={TrendingDown} isLoading={isLoading} isNegative />
             <KeyMetricCard title="Saldo Atual" value={formatCurrency(currentBalance)} Icon={DollarSign} isLoading={isLoading} isNegative={currentBalance < 0} />
         </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5" />Resumo de Projetos</CardTitle>
+                <CardDescription>Visão consolidada do previsto vs. realizado em todos os projetos.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <KeyMetricCard title="Receita Prevista (Projetos)" value={formatCurrency(projectPerformance.plannedRevenue)} Icon={TrendingUp} isLoading={isLoading} />
+                    <KeyMetricCard title="Receita Realizada (Projetos)" value={formatCurrency(projectPerformance.realizedRevenue)} Icon={DollarSign} isLoading={isLoading} />
+                    <KeyMetricCard title="Custo Previsto (Projetos)" value={formatCurrency(projectPerformance.plannedCost)} Icon={TrendingDown} isLoading={isLoading} isNegative />
+                    <KeyMetricCard title="Custo Realizado (Projetos)" value={formatCurrency(projectPerformance.realizedCost)} Icon={Wallet} isLoading={isLoading} isNegative />
+                </div>
+            </CardContent>
+         </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Fluxo de Caixa</CardTitle>
