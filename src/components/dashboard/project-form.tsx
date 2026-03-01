@@ -143,7 +143,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isSubmitting }: Proje
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Data da Venda</FormLabel>
-                 <Popover open={isCalendarOpen} onOpenChange={setCalendarOpen} modal={false}>
+                 <Popover open={isCalendarOpen} onOpenChange={setCalendarOpen} modal={true}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
