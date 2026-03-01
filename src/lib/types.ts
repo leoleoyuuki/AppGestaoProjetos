@@ -85,7 +85,8 @@ export type Transaction = {
   id: string;
   type: 'Receita' | 'Custo';
   description: string;
-  amount: number;
+  plannedAmount: number;
+  actualAmount: number;
   date: string;
   category: string;
   project: string;

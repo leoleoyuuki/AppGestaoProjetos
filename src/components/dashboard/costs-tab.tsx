@@ -197,7 +197,8 @@ export default function CostsTab() {
                         {cost.isRecurring && <Badge variant="outline" className="text-muted-foreground"><RefreshCw className="h-3 w-3 mr-1" /> Recorrente</Badge>}
                         <div className="text-sm text-muted-foreground space-y-1">
                             <p>Vencimento: {new Date(cost.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-                            <p>Valor: <span className="font-medium text-foreground">{formatCurrency(cost.plannedAmount)}</span></p>
+                            <p>Previsto: <span className="font-medium text-foreground">{formatCurrency(cost.plannedAmount)}</span></p>
+                            <p>Real: <span className="font-medium text-foreground">{formatCurrency(cost.actualAmount)}</span></p>
                             <div>Categoria: <Badge variant="outline" className="ml-1">{cost.category}</Badge></div>
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
@@ -242,7 +243,8 @@ export default function CostsTab() {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Projeto</TableHead>
                 <TableHead>Data de vencimento</TableHead>
-                <TableHead className="text-right">Valor (R$)</TableHead>
+                <TableHead className="text-right">Previsto (R$)</TableHead>
+                <TableHead className="text-right">Real (R$)</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right"><span className="sr-only">Ações</span></TableHead>
@@ -251,7 +253,7 @@ export default function CostsTab() {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <div className="space-y-2">
                       <Skeleton className="h-8 w-full" />
                       <Skeleton className="h-8 w-full" />
@@ -274,6 +276,7 @@ export default function CostsTab() {
                     <TableCell>{getProjectName(cost.projectId)}</TableCell>
                     <TableCell>{new Date(cost.transactionDate + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell className="text-right">{formatCurrency(cost.plannedAmount)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(cost.actualAmount)}</TableCell>
                     <TableCell><Badge variant="outline">{cost.category}</Badge></TableCell>
                     <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
                     <TableCell className="text-right">
@@ -308,7 +311,7 @@ export default function CostsTab() {
               })}
               {!loading && (!data || data.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
+                  <TableCell colSpan={8} className="h-24 text-center">Nenhuma conta a pagar encontrada.</TableCell>
                 </TableRow>
               )}
             </TableBody>

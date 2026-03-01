@@ -61,7 +61,8 @@ export default function CashflowTab() {
       id: `trans-rev-${r.id}`,
       type: 'Receita' as const,
       description: r.name,
-      amount: r.receivedAmount > 0 ? r.receivedAmount : r.plannedAmount,
+      plannedAmount: r.plannedAmount,
+      actualAmount: r.receivedAmount,
       date: r.transactionDate,
       category: 'Receita' as const,
       project: projects.find(p => p.id === r.projectId)?.name || 'N/A',
@@ -72,7 +73,8 @@ export default function CashflowTab() {
       id: `trans-cost-${c.id}`,
       type: 'Custo' as const,
       description: c.name,
-      amount: c.actualAmount > 0 ? c.actualAmount : c.plannedAmount,
+      plannedAmount: c.plannedAmount,
+      actualAmount: c.actualAmount,
       date: c.transactionDate,
       category: c.category,
       project: projects.find(p => p.id === c.projectId)?.name || 'N/A',
@@ -196,9 +198,10 @@ export default function CashflowTab() {
                                 <p>{new Date(transaction.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                                 <p>{transaction.project}</p>
                             </div>
-                            <p className={`font-semibold ${transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>
-                                {formatCurrency(transaction.amount)}
-                            </p>
+                            <div className="text-right text-sm">
+                                <p>Real: <span className={`font-semibold ${transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(transaction.actualAmount)}</span></p>
+                                <p>Prev: <span className="text-muted-foreground">{formatCurrency(transaction.plannedAmount)}</span></p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -213,13 +216,14 @@ export default function CashflowTab() {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Projeto</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Previsto</TableHead>
+                <TableHead className="text-right">Realizado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={6}>
                      <div className="space-y-2">
                       <Skeleton className="h-8 w-full" />
                       <Skeleton className="h-8 w-full" />
@@ -238,12 +242,13 @@ export default function CashflowTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>{transaction.project}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(transaction.plannedAmount)}</TableCell>
                   <TableCell className={`text-right font-semibold ${transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(transaction.amount)}
+                    {formatCurrency(transaction.actualAmount)}
                   </TableCell>
                 </TableRow>
               ))}
-               {!isLoading && transactions.length === 0 && <TableRow><TableCell colSpan={5} className="h-24 text-center">Nenhuma transação encontrada.</TableCell></TableRow>}
+               {!isLoading && transactions.length === 0 && <TableRow><TableCell colSpan={6} className="h-24 text-center">Nenhuma transação encontrada.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
