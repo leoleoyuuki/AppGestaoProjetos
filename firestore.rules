@@ -32,7 +32,8 @@ service cloud.firestore {
 
         // --- Revenue Items Subcollection ---
         match /revenueItems/{revenueItemId} {
-          allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+          allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+          allow update, delete: if request.auth != null && request.auth.uid == userId;
           allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
         }
       }
