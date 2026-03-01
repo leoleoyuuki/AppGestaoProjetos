@@ -16,7 +16,11 @@ import { useMemo } from 'react';
 import { Skeleton } from "../ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 
-export default function CostPieChart() {
+interface CostPieChartProps {
+    projectId?: string;
+}
+
+export default function CostPieChart({ projectId }: CostPieChartProps) {
   const { user } = useUser();
   const firestore = useFirestore();
 
@@ -24,12 +28,20 @@ export default function CostPieChart() {
     if (!user || !firestore) return null;
     return query(collection(firestore, `users/${user.uid}/costItems`));
   }, [firestore, user]);
-  const { data: costs, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
+  const { data: allCosts, isLoading: costsLoading } = useCollection<CostItem>(costsQuery);
   
   const { chartData, chartConfig } = useMemo(() => {
-    if (!costs) return { chartData: [], chartConfig: {} };
+    if (!allCosts) return { chartData: [], chartConfig: {} };
 
-    const costDataByCategory = costs.reduce((acc, cost) => {
+    const filteredCosts = projectId
+      ? allCosts.filter(cost => cost.projectId === projectId)
+      : allCosts;
+
+    if (filteredCosts.length === 0) {
+        return { chartData: [], chartConfig: {} };
+    }
+
+    const costDataByCategory = filteredCosts.reduce((acc, cost) => {
         const totalCost = cost.actualAmount > 0 ? cost.actualAmount : cost.plannedAmount
         if (!acc[cost.category]) {
             acc[cost.category] = { name: cost.category, value: 0 };
@@ -53,11 +65,21 @@ export default function CostPieChart() {
     });
 
     return { chartData: data, chartConfig: config };
-}, [costs]);
+}, [allCosts, projectId]);
 
 
   if (costsLoading) {
-    return <Skeleton className="h-[350px] w-[350px] rounded-full" />
+    return <div className="flex justify-center items-center h-[350px]">
+        <Skeleton className="h-[350px] w-[350px] rounded-full" />
+    </div>
+  }
+
+  if (chartData.length === 0) {
+      return (
+          <div className="flex justify-center items-center h-[350px]">
+              <p className="text-muted-foreground">Nenhum dado de custo para exibir.</p>
+          </div>
+      )
   }
 
   return (
