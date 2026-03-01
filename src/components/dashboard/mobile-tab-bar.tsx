@@ -17,11 +17,13 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebas
 import { collection, query } from 'firebase/firestore';
 import type { Project } from '@/lib/types';
 import { QuickExpenseDialog } from './quick-expense-dialog';
+import { QuickGainDialog } from './quick-gain-dialog';
 
 export default function MobileTabBar() {
   const pathname = usePathname();
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
   const [isQuickExpenseDialogOpen, setQuickExpenseDialogOpen] = useState(false);
+  const [isQuickGainDialogOpen, setQuickGainDialogOpen] = useState(false);
 
   const { user } = useUser();
   const firestore = useFirestore();
@@ -64,9 +66,13 @@ export default function MobileTabBar() {
                           <Briefcase className="mr-2 h-4 w-4" />
                           <span>Novo Projeto</span>
                       </DropdownMenuItem>
+                       <DropdownMenuItem onSelect={() => setQuickGainDialogOpen(true)}>
+                          <CircleDollarSign className="mr-2 h-4 w-4" />
+                          <span>Ganho Rápido</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setQuickExpenseDialogOpen(true)}>
                           <Zap className="mr-2 h-4 w-4" />
-                          <span>Lançamento Diário</span>
+                          <span>Despesa Rápida</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -97,6 +103,11 @@ export default function MobileTabBar() {
           <QuickExpenseDialog
             isOpen={isQuickExpenseDialogOpen}
             onOpenChange={setQuickExpenseDialogOpen}
+            projects={projects}
+          />
+          <QuickGainDialog
+            isOpen={isQuickGainDialogOpen}
+            onOpenChange={setQuickGainDialogOpen}
             projects={projects}
           />
         </>

@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter, DollarSign, TrendingUp, TrendingDown, Landmark, Zap, Briefcase, Wallet } from 'lucide-react';
+import { ArrowDown, ArrowUp, Calendar as CalendarIcon, Filter, DollarSign, TrendingUp, TrendingDown, Landmark, Zap, Briefcase, Wallet, CircleDollarSign } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -16,11 +16,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
 import Link from 'next/link';
 import { QuickExpenseDialog } from './quick-expense-dialog';
+import { QuickGainDialog } from './quick-gain-dialog';
 
 export default function CashflowTab() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [isQuickExpenseDialogOpen, setQuickExpenseDialogOpen] = useState(false);
+  const [isQuickGainDialogOpen, setQuickGainDialogOpen] = useState(false);
 
   const costsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -206,6 +208,9 @@ export default function CashflowTab() {
               </SelectContent>
             </Select>
              <Button variant="outline" className="w-full md:w-auto"><Filter className="mr-2 h-4 w-4"/> Aplicar Filtros</Button>
+             <Button className="w-full md:w-auto" onClick={() => setQuickGainDialogOpen(true)}>
+                <CircleDollarSign className="mr-2 h-4 w-4"/> Ganho Rápido
+             </Button>
              <Button className="w-full md:w-auto" onClick={() => setQuickExpenseDialogOpen(true)}>
                 <Zap className="mr-2 h-4 w-4"/> Despesa Rápida
              </Button>
@@ -286,6 +291,11 @@ export default function CashflowTab() {
       {projects && <QuickExpenseDialog
         isOpen={isQuickExpenseDialogOpen}
         onOpenChange={setQuickExpenseDialogOpen}
+        projects={projects}
+      />}
+      {projects && <QuickGainDialog
+        isOpen={isQuickGainDialogOpen}
+        onOpenChange={setQuickGainDialogOpen}
         projects={projects}
       />}
     </div>

@@ -542,11 +542,16 @@ export function deleteRevenueItem(
 export function receiveRevenueItem(
   firestore: Firestore,
   userId: string,
-  revenueItem: RevenueItem
+  revenueItem: RevenueItem,
+  receivedAmount?: number
 ) {
   const revenueItemDocRef = doc(firestore, `users/${userId}/projects/${revenueItem.projectId}/revenueItems`, revenueItem.id);
+  const finalAmount = receivedAmount !== undefined 
+    ? receivedAmount 
+    : (revenueItem.receivedAmount > 0 ? revenueItem.receivedAmount : revenueItem.plannedAmount);
+
   const data = {
-    receivedAmount: revenueItem.receivedAmount > 0 ? revenueItem.receivedAmount : revenueItem.plannedAmount,
+    receivedAmount: finalAmount,
     updatedAt: serverTimestamp(),
   };
 

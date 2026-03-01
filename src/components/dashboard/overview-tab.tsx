@@ -13,9 +13,9 @@ import {
   Zap,
 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
-import { ProjectDialog } from './project-dialog';
-import KeyMetricCard from './overview/key-metric-card';
-import ProjectList from './overview/project-list';
+import { ProjectDialog } from '@/components/dashboard/project-dialog';
+import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
+import ProjectList from '@/components/dashboard/overview/project-list';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, collectionGroup } from 'firebase/firestore';
 import type { Project, CostItem, RevenueItem } from '@/lib/types';
@@ -24,10 +24,10 @@ import { MonthYearPicker } from '@/components/ui/month-year-picker';
 import { format, startOfMonth, endOfMonth, isWithinInterval, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '@/lib/utils';
-import MonthlyIOChart from './overview/monthly-io-chart';
-import WeeklySummary from './overview/weekly-summary';
-import RevenueLineChart from './overview/revenue-line-chart';
+import MonthlyIOChart from '@/components/dashboard/overview/monthly-io-chart';
+import WeeklySummary from '@/components/dashboard/overview/weekly-summary';
 import { QuickExpenseDialog } from './quick-expense-dialog';
+import { QuickGainDialog } from './quick-gain-dialog';
 
 // Helper to parse YYYY-MM-DD strings in the local timezone, avoiding UTC conversion issues.
 const parseLocalDate = (dateString: string) => new Date(dateString + 'T00:00:00');
@@ -35,6 +35,7 @@ const parseLocalDate = (dateString: string) => new Date(dateString + 'T00:00:00'
 export default function OverviewTab() {
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
   const [isQuickExpenseDialogOpen, setQuickExpenseDialogOpen] = useState(false);
+  const [isQuickGainDialogOpen, setQuickGainDialogOpen] = useState(false);
   const [isMonthPickerOpen, setMonthPickerOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>();
 
@@ -166,12 +167,14 @@ export default function OverviewTab() {
               />
             </PopoverContent>
           </Popover>
-
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => setQuickExpenseDialogOpen(true)}>
               <Zap className="mr-2 h-4 w-4" />
-              Lançamento Diário
+              Despesa Rápida
           </Button>
-
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setQuickGainDialogOpen(true)}>
+            <Zap className="mr-2 h-4 w-4" />
+            Ganho Rápido
+          </Button>
           <Button onClick={() => setProjectDialogOpen(true)} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Novo Projeto
@@ -228,8 +231,8 @@ export default function OverviewTab() {
           isLoading={isLoading}
         />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Entradas x Saídas (Últimos 6 meses)</CardTitle>
           </CardHeader>
@@ -237,16 +240,6 @@ export default function OverviewTab() {
             <MonthlyIOChart costs={costs} revenues={revenues} isLoading={isLoading} userId={user?.uid} />
           </CardContent>
         </Card>
-        <Card>
-            <CardHeader>
-                <CardTitle>Entradas (Últimos 6 meses)</CardTitle>
-            </CardHeader>
-            <CardContent className="pl-2">
-                <RevenueLineChart revenues={revenues} isLoading={isLoading} userId={user?.uid} />
-            </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ProjectList />
       </div>
       <ProjectDialog isOpen={isProjectDialogOpen} onOpenChange={setProjectDialogOpen} />
@@ -255,6 +248,11 @@ export default function OverviewTab() {
           <QuickExpenseDialog
             isOpen={isQuickExpenseDialogOpen}
             onOpenChange={setQuickExpenseDialogOpen}
+            projects={projects}
+          />
+           <QuickGainDialog
+            isOpen={isQuickGainDialogOpen}
+            onOpenChange={setQuickGainDialogOpen}
             projects={projects}
           />
         </>

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { PlusCircle, MoreHorizontal, Check } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Check, Zap, CircleDollarSign } from 'lucide-react';
 import type { RevenueItem, Project } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, collection } from 'firebase/firestore';
@@ -18,6 +18,7 @@ import { deleteRevenueItem, receiveRevenueItem, unreceiveRevenueItem } from '@/l
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { QuickGainDialog } from './quick-gain-dialog';
 
 export default function RevenueTab() {
   const { user } = useUser();
@@ -27,6 +28,7 @@ export default function RevenueTab() {
   const activeTab = searchParams.get('tab');
 
   const [isRevenueItemDialogOpen, setRevenueItemDialogOpen] = useState(false);
+  const [isQuickGainDialogOpen, setQuickGainDialogOpen] = useState(false);
   const [editingRevenueItem, setEditingRevenueItem] = useState<RevenueItem | undefined>(undefined);
   const [deletingRevenueItem, setDeletingRevenueItem] = useState<RevenueItem | undefined>(undefined);
 
@@ -333,10 +335,16 @@ export default function RevenueTab() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Contas a Receber</h1>
-        <Button size="sm" onClick={openDialogForCreate}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Adicionar Conta
-        </Button>
+        <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setQuickGainDialogOpen(true)}>
+                <CircleDollarSign className="mr-2 h-4 w-4" />
+                Ganho Rápido
+            </Button>
+            <Button size="sm" onClick={openDialogForCreate}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Conta
+            </Button>
+        </div>
       </div>
       <Card>
         <CardHeader>
@@ -379,6 +387,13 @@ export default function RevenueTab() {
         title="Tem certeza que deseja excluir esta conta?"
         description="Esta ação não pode ser desfeita e irá remover permanentemente a conta a receber."
       />}
+       {isQuickGainDialogOpen && projects && (
+        <QuickGainDialog
+          isOpen={isQuickGainDialogOpen}
+          onOpenChange={setQuickGainDialogOpen}
+          projects={projects}
+        />
+      )}
     </div>
   );
 }
