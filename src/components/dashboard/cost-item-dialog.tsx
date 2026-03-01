@@ -122,7 +122,15 @@ export function CostItemDialog({ costItem, projects, isOpen, onOpenChange }: Cos
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-radix-popper-content-wrapper]')) {
+            e.preventDefault();
+          }
+        }}
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>{costItem ? 'Editar Conta a Pagar' : 'Adicionar Nova Conta a Pagar'}</DialogTitle>
           <DialogDescription>

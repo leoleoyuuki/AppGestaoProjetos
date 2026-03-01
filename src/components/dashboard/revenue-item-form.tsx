@@ -227,7 +227,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data da Primeira Parcela</FormLabel>
-                  <Popover open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen} modal={false}>
+                  <Popover open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -289,7 +289,7 @@ export function RevenueItemForm({ revenueItem, projects, onSubmit, onCancel, isS
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Vencimento</FormLabel>
-                  <Popover open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen} modal={false}>
+                  <Popover open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button

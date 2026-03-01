@@ -361,7 +361,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Data da Primeira Parcela</FormLabel>
-                    <Popover open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen} modal={false}>
+                    <Popover open={isFirstInstallmentCalendarOpen} onOpenChange={setFirstInstallmentCalendarOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -473,7 +473,7 @@ export function CostItemForm({ costItem, projects, onSubmit, onCancel, isSubmitt
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>{isRecurring ? "Data do Próximo Vencimento" : "Data de Vencimento"}</FormLabel>
-                    <Popover open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen} modal={false}>
+                    <Popover open={isTransactionCalendarOpen} onOpenChange={setTransactionCalendarOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
