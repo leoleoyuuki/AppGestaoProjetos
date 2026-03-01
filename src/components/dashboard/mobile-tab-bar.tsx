@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Wallet, Plus, CircleDollarSign, Briefcase, TrendingUp, TrendingDown, Zap } from 'lucide-react';
+import { LayoutDashboard, Wallet, Plus, CircleDollarSign, Briefcase, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,8 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { CostItemDialog } from './cost-item-dialog';
-import { RevenueItemDialog } from './revenue-item-dialog';
 import { ProjectDialog } from './project-dialog';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
@@ -22,8 +20,6 @@ import { QuickExpenseDialog } from './quick-expense-dialog';
 
 export default function MobileTabBar() {
   const pathname = usePathname();
-  const [isCostDialogOpen, setCostDialogOpen] = useState(false);
-  const [isRevenueDialogOpen, setRevenueDialogOpen] = useState(false);
   const [isProjectDialogOpen, setProjectDialogOpen] = useState(false);
   const [isQuickExpenseDialogOpen, setQuickExpenseDialogOpen] = useState(false);
 
@@ -68,17 +64,9 @@ export default function MobileTabBar() {
                           <Briefcase className="mr-2 h-4 w-4" />
                           <span>Novo Projeto</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setRevenueDialogOpen(true)}>
-                          <TrendingUp className="mr-2 h-4 w-4" />
-                          <span>Nova Receita</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setCostDialogOpen(true)}>
-                          <TrendingDown className="mr-2 h-4 w-4" />
-                          <span>Novo Custo</span>
-                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setQuickExpenseDialogOpen(true)}>
                           <Zap className="mr-2 h-4 w-4" />
-                          <span>Despesa Rápida</span>
+                          <span>Lançamento Diário</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -106,16 +94,6 @@ export default function MobileTabBar() {
       {projects && (
         <>
           <ProjectDialog isOpen={isProjectDialogOpen} onOpenChange={setProjectDialogOpen} />
-          <CostItemDialog 
-              isOpen={isCostDialogOpen}
-              onOpenChange={setCostDialogOpen}
-              projects={projects}
-          />
-          <RevenueItemDialog 
-              isOpen={isRevenueDialogOpen}
-              onOpenChange={setRevenueDialogOpen}
-              projects={projects}
-          />
           <QuickExpenseDialog
             isOpen={isQuickExpenseDialogOpen}
             onOpenChange={setQuickExpenseDialogOpen}
