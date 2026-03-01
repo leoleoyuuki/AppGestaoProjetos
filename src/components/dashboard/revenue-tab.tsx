@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -342,13 +342,14 @@ export default function RevenueTab() {
             </Button>
             <Button size="sm" onClick={openDialogForCreate}>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Conta
+                Adicionar Previsão
             </Button>
         </div>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Lançamentos</CardTitle>
+          <CardDescription>Previsões de recebimento, parcelas e contas a receber.</CardDescription>
         </CardHeader>
         <CardContent>
             <Tabs defaultValue={activeTab || 'all'} className="w-full">
@@ -387,7 +388,7 @@ export default function RevenueTab() {
         title="Tem certeza que deseja excluir esta conta?"
         description="Esta ação não pode ser desfeita e irá remover permanentemente a conta a receber."
       />}
-       {isQuickGainDialogOpen && projects && (
+       {projects && (
         <QuickGainDialog
           isOpen={isQuickGainDialogOpen}
           onOpenChange={setQuickGainDialogOpen}

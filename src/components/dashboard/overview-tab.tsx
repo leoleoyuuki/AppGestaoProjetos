@@ -10,6 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
   Percent,
+  CircleDollarSign,
   Zap,
 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
@@ -167,13 +168,13 @@ export default function OverviewTab() {
               />
             </PopoverContent>
           </Popover>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setQuickGainDialogOpen(true)}>
+            <CircleDollarSign className="mr-2 h-4 w-4" />
+            Ganho Rápido
+          </Button>
           <Button variant="outline" className="w-full sm:w-auto" onClick={() => setQuickExpenseDialogOpen(true)}>
               <Zap className="mr-2 h-4 w-4" />
               Despesa Rápida
-          </Button>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setQuickGainDialogOpen(true)}>
-            <Zap className="mr-2 h-4 w-4" />
-            Ganho Rápido
           </Button>
           <Button onClick={() => setProjectDialogOpen(true)} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />

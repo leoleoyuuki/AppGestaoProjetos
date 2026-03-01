@@ -78,7 +78,7 @@ type QuickExpenseFormValues = z.infer<typeof quickExpenseFormSchema>;
 export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpenseDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [projectFilter, setProjectFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -116,7 +116,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
   const isPayingExisting = form.watch('isPayingExisting');
   
   const filteredPendingCosts = useMemo(() => {
-    if (!pendingCosts || !projectFilter) return [];
+    if (!pendingCosts || projectFilter === undefined) return [];
     if (projectFilter === '--none--') { // Company costs
       return pendingCosts.filter(cost => !cost.projectId);
     }
@@ -141,7 +141,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
             description: '',
             selectedCostItemId: undefined,
           });
-          setProjectFilter('');
+          setProjectFilter(undefined);
       }
   }, [isOpen, form]);
 
@@ -276,12 +276,12 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                                         }
                                       }} 
                                       defaultValue={field.value}
-                                      disabled={!projectFilter || pendingCostsLoading}
+                                      disabled={projectFilter === undefined || pendingCostsLoading}
                                     >
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder={
-                                                    !projectFilter ? "Primeiro selecione um filtro" :
+                                                    projectFilter === undefined ? "Primeiro selecione um filtro" :
                                                     pendingCostsLoading ? "Carregando..." :
                                                     (filteredPendingCosts.length === 0) ? "Nenhuma conta pendente" :
                                                     "Selecione uma conta pendente"
@@ -296,7 +296,7 @@ export function QuickExpenseDialog({ projects, isOpen, onOpenChange }: QuickExpe
                                                     </SelectItem>
                                                 ))
                                             ) : (
-                                                <SelectItem value="none" disabled>Não há nenhuma conta a pagar prevista nesse projeto.</SelectItem>
+                                                <SelectItem value="none" disabled>Não há nenhuma conta a pagar prevista.</SelectItem>
                                             )}
                                         </SelectContent>
                                     </Select>
