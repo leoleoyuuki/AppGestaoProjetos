@@ -17,6 +17,8 @@ import KeyMetricCard from '@/components/dashboard/overview/key-metric-card';
 import Link from 'next/link';
 import { QuickExpenseDialog } from './quick-expense-dialog';
 import { QuickGainDialog } from './quick-gain-dialog';
+import RevenueLineChart from '../charts/revenue-line-chart';
+import CostLineChart from '../charts/cost-line-chart';
 
 export default function CashflowTab() {
   const { user } = useUser();
@@ -159,14 +161,36 @@ export default function CashflowTab() {
                 <CardDescription>Visão consolidada do previsto vs. realizado em todos os projetos.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <KeyMetricCard title="Receita Prevista (Projetos)" value={formatCurrency(projectPerformance.plannedRevenue)} Icon={TrendingUp} isLoading={isLoading} />
-                    <KeyMetricCard title="Receita Realizada (Projetos)" value={formatCurrency(projectPerformance.realizedRevenue)} Icon={DollarSign} isLoading={isLoading} />
-                    <KeyMetricCard title="Custo Previsto (Projetos)" value={formatCurrency(projectPerformance.plannedCost)} Icon={TrendingDown} isLoading={isLoading} isNegative />
-                    <KeyMetricCard title="Custo Realizado (Projetos)" value={formatCurrency(projectPerformance.realizedCost)} Icon={Wallet} isLoading={isLoading} isNegative />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <KeyMetricCard title="Receita Prevista (Projetos)" value={formatCurrency(projectPerformance.plannedRevenue)} Icon={TrendingUp} isLoading={isLoading} />
+                <KeyMetricCard title="Receita Realizada (Projetos)" value={formatCurrency(projectPerformance.realizedRevenue)} Icon={DollarSign} isLoading={isLoading} />
+                <KeyMetricCard title="Custo Previsto (Projetos)" value={formatCurrency(projectPerformance.plannedCost)} Icon={TrendingDown} isLoading={isLoading} isNegative />
+                <KeyMetricCard title="Custo Realizado (Projetos)" value={formatCurrency(projectPerformance.realizedCost)} Icon={Wallet} isLoading={isLoading} isNegative />
+              </div>
             </CardContent>
          </Card>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Receita: Previsto vs. Realizado</CardTitle>
+                    <CardDescription>Comparativo dos últimos 6 meses</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2">
+                    <RevenueLineChart revenues={revenues} isLoading={isLoading} userId={user?.uid} />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Custo: Previsto vs. Realizado</CardTitle>
+                    <CardDescription>Comparativo dos últimos 6 meses</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2">
+                    <CostLineChart costs={costs} isLoading={isLoading} userId={user?.uid} />
+                </CardContent>
+            </Card>
+        </div>
+
 
       <Card>
         <CardHeader>
